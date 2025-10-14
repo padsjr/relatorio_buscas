@@ -1,0 +1,25 @@
+# Exemplo de arquivo de configuração de ambiente
+# Copie este arquivo para .env e ajuste as configurações conforme necessário
+
+# Configurações do Flask
+FLASK_DEBUG=False
+SECRET_KEY=sua-chave-secreta-super-segura-aqui
+
+# Configurações do Banco de Dados
+# Para SQLite (padrão)
+DATABASE_URL=sqlite:///relatorios.db
+
+# Para PostgreSQL (produção)
+# DATABASE_URL=postgresql://usuario:senha@localhost/relatorios
+
+# Para MySQL (produção)
+# DATABASE_URL=mysql://usuario:senha@localhost/relatorios
+
+# Configurações de Upload
+MAX_FILE_SIZE=16777216  # 16MB em bytes
+UPLOAD_FOLDER=static/uploads
+
+# Configurações de Templates
+TEMPLATE_INTRODUCAO=modelo_introducao_buscas.docx
+TEMPLATE_DIAS=modelo_buscas_por_dias.docx
+TEMPLATE_FINAL=modelo_resultado_final_buscas.docx

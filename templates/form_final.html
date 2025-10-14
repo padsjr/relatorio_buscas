@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Finalizar Buscas</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        form { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; }
+        label { display: block; font-weight: bold; margin-top: 10px; }
+        input, textarea { width: 100%; padding: 8px; }
+        button { margin-top: 16px; padding: 10px 16px; }
+    </style>
+</head>
+<body>
+  <h1>Relatório Final das Buscas</h1>
+  <form method="POST" enctype="multipart/form-data">
+    <label>Status da Vítima</label>
+    <input name="status_vitima" type="text">
+    <label>Estado Biológico</label>
+    <input name="estado_biologico" type="text">
+    <label>Coordenada da Vítima</label>
+    <input name="coordenada_vitima" type="text">
+    <label>Temperatura da Água</label>
+    <input name="temp_agua" type="text">
+    <label>Estado do Corpo</label>
+    <input name="estado_corpo" type="text">
+    <label>Tempo Total de Buscas</label>
+    <input name="temp_total_buscas" type="text">
+    <label>Efetivo Total</label>
+    <input name="efetiv_total" type="text">
+    <label>Recursos Empregados</label>
+    <input name="rec_empreg" type="text">
+    <label>Relato</label>
+    <textarea name="relato" rows="5"></textarea>
+    <label>Imagem do Corpo</label>
+    <input name="img_corpo" type="file">
+    <label>Imagem do Local do Corpo</label>
+    <input name="img_local_corpo" type="file">
+    <button type="submit">Salvar</button>
+  </form>
+</body>
+</html>
+
+

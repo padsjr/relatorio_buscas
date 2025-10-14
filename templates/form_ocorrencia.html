@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Nova Ocorrência</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .section h2 {
+            color: #007bff;
+            margin-top: 0;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            flex: 1;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .required {
+            color: red;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .file-input {
+            margin-bottom: 10px;
+        }
+        .file-input label {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+            display: block;
+            text-align: center;
+            cursor: pointer;
+        }
+        .file-input input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <h1>Nova Ocorrência</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+            <!-- DADOS BÁSICOS DA OCORRÊNCIA -->
+            <div class="section">
+                <h2>1. Dados Básicos da Ocorrência</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tipo">Tipo de Ocorrência <span class="required">*</span></label>
+                        <select name="tipo" id="tipo" required>
+                            <option value="">Selecione...</option>
+                            <option value="Salvamento">Salvamento</option>
+                            <option value="Busca">Busca</option>
+                            <option value="Resgate">Resgate</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="genero">Gênero <span class="required">*</span></label>
+                        <select name="genero" id="genero" required>
+                            <option value="">Selecione...</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Não informado">Não informado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data_fato">Data do Fato <span class="required">*</span></label>
+                        <input type="date" name="data_fato" id="data_fato" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="data_acionamento">Data de Acionamento</label>
+                        <input type="date" name="data_acionamento" id="data_acionamento">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="link">Link de Referência</label>
+                    <input type="url" name="link" id="link" placeholder="https://...">
+                </div>
+            </div>
+
+            <!-- DADOS DO LOCAL -->
+            <div class="section">
+                <h2>2. Dados do Local</h2>
+                
+                <div class="form-group">
+                    <label for="endereco">Endereço <span class="required">*</span></label>
+                    <input type="text" name="endereco" id="endereco" required placeholder="Rua, número, bairro">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cidade">Cidade <span class="required">*</span></label>
+                        <input type="text" name="cidade" id="cidade" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="complemento">Complemento</label>
+                        <input type="text" name="complemento" id="complemento" placeholder="Ponto de referência, detalhes">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="coordenada">Coordenadas</label>
+                    <input type="text" name="coordenada" id="coordenada" placeholder="Latitude, Longitude">
+                </div>
+            </div>
+
+            <!-- DADOS DA VÍTIMA -->
+            <div class="section">
+                <h2>3. Dados da Vítima</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nome_vitima">Nome da Vítima <span class="required">*</span></label>
+                        <input type="text" name="nome_vitima" id="nome_vitima" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cpf">CPF</label>
+                        <input type="text" name="cpf" id="cpf" placeholder="000.000.000-00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sexo">Sexo</label>
+                        <select name="sexo" id="sexo">
+                            <option value="">Selecione...</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Não informado">Não informado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="idade">Idade</label>
+                        <input type="text" name="idade" id="idade" placeholder="Ex: 25 anos">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="naturalidade">Naturalidade</label>
+                    <input type="text" name="naturalidade" id="naturalidade">
+                </div>
+
+                <div class="form-group">
+                    <label for="filiacao">Filiação</label>
+                    <input type="text" name="filiacao" id="filiacao" placeholder="Nome dos pais">
+                </div>
+
+                <div class="form-group">
+                    <label for="contatos">Contatos</label>
+                    <input type="text" name="contatos" id="contatos" placeholder="Telefone, email">
+                </div>
+
+                <div class="form-group">
+                    <label for="enderecos">Endereços</label>
+                    <input type="text" name="enderecos" id="enderecos" placeholder="Endereço residencial">
+                </div>
+
+                <div class="form-group">
+                    <label for="vestimentas">Vestimentas</label>
+                    <textarea name="vestimentas" id="vestimentas" placeholder="Descrição das roupas que a vítima estava usando"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="caracteristicas_vitima">Características da Vítima</label>
+                    <textarea name="caracteristicas_vitima" id="caracteristicas_vitima" placeholder="Altura, peso, cor dos olhos, cabelo, etc."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="condicoes_neurologicas">Condições Neurológicas</label>
+                    <textarea name="condicoes_neurologicas" id="condicoes_neurologicas" placeholder="Alzheimer, demência, etc."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="inf_medicas">Informações Médicas</label>
+                    <textarea name="inf_medicas" id="inf_medicas" placeholder="Medicamentos, doenças, etc."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="experiencia_e_resistencia">Experiência e Resistência</label>
+                    <textarea name="experiencia_e_resistencia" id="experiencia_e_resistencia" placeholder="Experiência com água, natação, etc."></textarea>
+                </div>
+            </div>
+
+            <!-- CARACTERÍSTICAS DA ÁREA DE BUSCA -->
+            <div class="section">
+                <h2>4. Características da Área de Busca</h2>
+                
+                <div class="form-group">
+                    <label for="tipo_terreno_agua">Tipo de Terreno/Água</label>
+                    <select name="tipo_terreno_agua" id="tipo_terreno_agua">
+                        <option value="">Selecione...</option>
+                        <option value="Mar">Mar</option>
+                        <option value="Rio">Rio</option>
+                        <option value="Lago">Lago</option>
+                        <option value="Piscina">Piscina</option>
+                        <option value="Terreno">Terreno</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="condicoes_do_tipo_terreno">Condições do Terreno</label>
+                    <textarea name="condicoes_do_tipo_terreno" id="condicoes_do_tipo_terreno" placeholder="Profundidade, correnteza, vegetação, etc."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="condicoes_climaticas">Condições Climáticas</label>
+                    <textarea name="condicoes_climaticas" id="condicoes_climaticas" placeholder="Temperatura, vento, chuva, visibilidade, etc."></textarea>
+                </div>
+            </div>
+
+            <!-- IMAGENS -->
+            <div class="section">
+                <h2>5. Imagens</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_condic_metereologica">Condições Meteorológicas</label>
+                            <input type="file" name="img_condic_metereologica" id="img_condic_metereologica" accept="image/*">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_local">Imagem do Local</label>
+                            <input type="file" name="img_local" id="img_local" accept="image/*">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_upv">Imagem do UPV</label>
+                            <input type="file" name="img_upv" id="img_upv" accept="image/*">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_satelite_upv">Imagem de Satélite UPV</label>
+                            <input type="file" name="img_satelite_upv" id="img_satelite_upv" accept="image/*">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_raio_busca">Raio de Busca</label>
+                            <input type="file" name="img_raio_busca" id="img_raio_busca" accept="image/*">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_tab_mare">Tábua de Maré</label>
+                            <input type="file" name="img_tab_mare" id="img_tab_mare" accept="image/*">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="file-input">
+                        <label for="img_prev_temp_onda">Previsão de Temperatura e Ondas</label>
+                        <input type="file" name="img_prev_temp_onda" id="img_prev_temp_onda" accept="image/*">
+                    </div>
+                </div>
+            </div>
+
+            <!-- HISTÓRICO DA OCORRÊNCIA -->
+            <div class="section">
+                <h2>6. Histórico da Ocorrência</h2>
+                
+                <div class="form-group">
+                    <label for="historico_ocorrencia">Histórico Detalhado <span class="required">*</span></label>
+                    <textarea name="historico_ocorrencia" id="historico_ocorrencia" rows="6" required placeholder="Descreva detalhadamente como ocorreu o fato, circunstâncias, testemunhas, etc."></textarea>
+                </div>
+            </div>
+
+        <button type="submit">Salvar Ocorrência</button>
+    </form>
+    </div>
+
+    <script>
+        // Adicionar funcionalidade aos inputs de arquivo
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function(e) {
+                const label = this.previousElementSibling;
+                if (e.target.files.length > 0) {
+                    label.textContent = 'Arquivo selecionado: ' + e.target.files[0].name;
+                    label.style.backgroundColor = '#d4edda';
+                    label.style.borderColor = '#c3e6cb';
+                } else {
+                    label.textContent = label.textContent.split(':')[0];
+                    label.style.backgroundColor = '#f8f9fa';
+                    label.style.borderColor = '#ccc';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

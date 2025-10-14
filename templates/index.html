@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>Relatórios de Busca</title></head>
+<body>
+<h1>Relatórios de Busca</h1>
+<a href="{{ url_for('nova') }}">Nova Ocorrência</a>
+<table border="1">
+<tr><th>ID</th><th>Tipo</th><th>Gênero</th><th>Data</th><th>Vítima</th><th>Ações</th></tr>
+{% for o in ocorrencias %}
+<tr>
+<td>{{ o.id }}</td>
+<td>{{ o.tipo }}</td>
+<td>{{ o.genero }}</td>
+<td>{{ o.data_fato }}</td>
+<td>{{ o.nome_vitima }}</td>
+<td>
+  <a href="{{ url_for('novo_dia', id=o.id) }}">Novo dia</a> |
+  <a href="{{ url_for('finalizar', id=o.id) }}">Finalizar</a> |
+  <a href="{{ url_for('gerar', id=o.id) }}">Gerar .docx</a>
+</td>
+</tr>
+{% endfor %}
+</table>
+</body>
+</html>

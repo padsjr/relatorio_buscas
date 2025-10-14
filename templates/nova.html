@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Nova Ocorrência</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 700px;
+            margin: 0 auto;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-top: 5px;
+        }
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nova Ocorrência</h1>
+
+    <form action="/nova" method="POST" enctype="multipart/form-data">
+        <label>Nome da Vítima:</label>
+        <input type="text" name="nome_vitima" required>
+
+        <label>Data do Desaparecimento:</label>
+        <input type="date" name="data_desaparecimento" required>
+
+        <label>Local da Ocorrência:</label>
+        <input type="text" name="local_ocorrencia" required>
+
+        <label>Descrição da Ocorrência:</label>
+        <textarea name="descricao" rows="4" required></textarea>
+
+        <label>Imagem da Vítima (opcional):</label>
+        <input type="file" name="imagem_vitima">
+
+        <button type="submit">Salvar Ocorrência</button>
+    </form>
+</body>
+</html>

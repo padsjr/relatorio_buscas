@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Novo Dia de Busca</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        form { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; }
+        .row { display: flex; gap: 16px; }
+        .col { flex: 1; }
+        label { display: block; font-weight: bold; margin-top: 10px; }
+        input, textarea { width: 100%; padding: 8px; }
+        button { margin-top: 16px; padding: 10px 16px; }
+    </style>
+ </head>
+ <body>
+   <h1>Novo Dia de Busca</h1>
+   <form method="POST" enctype="multipart/form-data">
+     <div class="row">
+       <div class="col">
+         <label>Data</label>
+         <input type="date" name="data" required>
+       </div>
+       <div class="col">
+         <label>Hora Início</label>
+         <input type="time" name="hora_ini">
+       </div>
+       <div class="col">
+         <label>Hora Fim</label>
+         <input type="time" name="hora_fim">
+       </div>
+     </div>
+     <label>Nº Ocorrência (se aplicável)</label>
+     <input name="numero_ocorrencia" type="text">
+     <label>Condições</label>
+     <input name="condicoes" type="text">
+     <div class="row">
+       <div class="col">
+         <label>Temp. Inicial</label>
+         <input name="temp_inicial" type="text">
+       </div>
+       <div class="col">
+         <label>Temp. Final</label>
+         <input name="temp_final" type="text">
+       </div>
+     </div>
+     <label>Guarnição</label>
+     <input name="guarnicao" type="text">
+     <label>Recursos</label>
+     <input name="recursos" type="text">
+     <label>Histórico</label>
+     <textarea name="historico" rows="5"></textarea>
+     <label>Imagem Tábua de Maré</label>
+     <input name="img_tab_mare" type="file">
+     <label>Imagem Previsão (Vento/Ondas)</label>
+     <input name="img_prev_temp" type="file">
+     <label>Imagem Trajetos/Buscas</label>
+     <input name="img_traj_buscas" type="file">
+     <button type="submit">Salvar</button>
+   </form>
+ </body>
+ </html>
+
+
