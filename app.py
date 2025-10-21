@@ -1,5 +1,5 @@
 import os, datetime, traceback
-from flask import Flask, render_template, request, redirect, url_for, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
 from docx import Document
@@ -8,8 +8,18 @@ from copy import deepcopy
 # from docx2pdf import convert  # Removido devido a problemas de COM
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///relatorios.db'
+
+# Configurações específicas para Linux
+if os.name == 'posix':  # Linux/Unix
+    app.config['UPLOAD_FOLDER'] = 'static/uploads'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/relatorios.db'
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sua_chave_secreta_aqui')
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+else:  # Windows
+    app.config['UPLOAD_FOLDER'] = 'static/uploads'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///relatorios.db'
+    app.config['SECRET_KEY'] = 'sua_chave_secreta_aqui'
+
 db = SQLAlchemy(app)
 
 # Garante que a pasta de uploads exista
@@ -443,8 +453,125 @@ def gerar(id):
     base_doc.save(nome_docx)
     return send_file(nome_docx, as_attachment=True, download_name=nome_docx)
 
-    
+@app.route('/visualizar/<int:id>')
+def visualizar(id):
+    ocorrencia = Ocorrencia.query.get_or_404(id)
+    return render_template('visualizar.html', ocorrencia=ocorrencia)
 
+@app.route('/editar/<int:id>', methods=['GET', 'POST'])
+def editar(id):
+    ocorrencia = Ocorrencia.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        # Dados básicos da ocorrência
+        ocorrencia.tipo = request.form.get('tipo', '')
+        ocorrencia.genero = request.form.get('genero', '')
+        ocorrencia.data_fato = request.form.get('data_fato', '')
+        ocorrencia.data_acionamento = request.form.get('data_acionamento', '')
+        ocorrencia.link = request.form.get('link', '')
+        ocorrencia.endereco = request.form.get('endereco', '')
+        ocorrencia.cidade = request.form.get('cidade', '')
+        ocorrencia.complemento = request.form.get('complemento', '')
+        ocorrencia.coordenada = request.form.get('coordenada', '')
+        ocorrencia.historico_ocorrencia = request.form.get('historico_ocorrencia', '')
+        
+        # Dados da vítima
+        ocorrencia.nome_vitima = request.form.get('nome_vitima', '')
+        ocorrencia.cpf = request.form.get('cpf', '')
+        ocorrencia.sexo = request.form.get('sexo', '')
+        ocorrencia.idade = request.form.get('idade', '')
+        ocorrencia.filiacao = request.form.get('filiacao', '')
+        ocorrencia.naturalidade = request.form.get('naturalidade', '')
+        ocorrencia.contatos = request.form.get('contatos', '')
+        ocorrencia.enderecos = request.form.get('enderecos', '')
+        ocorrencia.vestimentas = request.form.get('vestimentas', '')
+        ocorrencia.caracteristicas_vitima = request.form.get('caracteristicas_vitima', '')
+        ocorrencia.condicoes_neurologicas = request.form.get('condicoes_neurologicas', '')
+        ocorrencia.inf_medicas = request.form.get('inf_medicas', '')
+        ocorrencia.experiencia_e_resistencia = request.form.get('experiencia_e_resistencia', '')
+        
+        # Dados do ambiente
+        ocorrencia.tipo_terreno_agua = request.form.get('tipo_terreno_agua', '')
+        ocorrencia.condicoes_do_tipo_terreno = request.form.get('condicoes_do_tipo_terreno', '')
+        ocorrencia.condicoes_climaticas = request.form.get('condicoes_climaticas', '')
+        
+        # Processar imagens (apenas se novas imagens foram enviadas)
+        campos_imagem = [
+            'img_condic_metereologica', 'img_local', 'img_upv', 'img_satelite_upv',
+            'img_raio_busca', 'img_tab_mare', 'img_prev_temp_onda'
+        ]
+        
+        for campo in campos_imagem:
+            if campo in request.files:
+                f = request.files[campo]
+                if f and f.filename:
+                    filename = secure_filename(f.filename)
+                    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    f.save(path)
+                    setattr(ocorrencia, campo, path)
+                    print(f"[upload] Atualizado '{campo}' em {os.path.abspath(path)}")
+        
+        db.session.commit()
+        flash('Ocorrência atualizada com sucesso!', 'success')
+        return redirect(url_for('visualizar', id=id))
+    
+    return render_template('editar.html', ocorrencia=ocorrencia)
+
+@app.route('/excluir/<int:id>')
+def excluir(id):
+    ocorrencia = Ocorrencia.query.get_or_404(id)
+    
+    # Excluir imagens associadas
+    campos_imagem = [
+        'img_condic_metereologica', 'img_local', 'img_upv', 'img_satelite_upv',
+        'img_raio_busca', 'img_tab_mare', 'img_prev_temp_onda'
+    ]
+    
+    for campo in campos_imagem:
+        caminho_imagem = getattr(ocorrencia, campo)
+        if caminho_imagem and os.path.exists(caminho_imagem):
+            try:
+                os.remove(caminho_imagem)
+                print(f"[delete] Imagem removida: {caminho_imagem}")
+            except Exception as e:
+                print(f"[delete] Erro ao remover imagem {caminho_imagem}: {e}")
+    
+    # Excluir dias de busca associados
+    dias_busca = DiaBusca.query.filter_by(ocorrencia_id=id).all()
+    for dia in dias_busca:
+        # Excluir imagens dos dias de busca
+        campos_dia = ['img_tab_mare', 'img_prev_temp', 'img_traj_buscas']
+        for campo in campos_dia:
+            caminho_imagem = getattr(dia, campo)
+            if caminho_imagem and os.path.exists(caminho_imagem):
+                try:
+                    os.remove(caminho_imagem)
+                    print(f"[delete] Imagem do dia removida: {caminho_imagem}")
+                except Exception as e:
+                    print(f"[delete] Erro ao remover imagem do dia {caminho_imagem}: {e}")
+        db.session.delete(dia)
+    
+    # Excluir relatório final associado
+    relatorio_final = RelatorioFinal.query.filter_by(ocorrencia_id=id).first()
+    if relatorio_final:
+        # Excluir imagens do relatório final
+        campos_final = ['img_corpo', 'img_local_corpo']
+        for campo in campos_final:
+            caminho_imagem = getattr(relatorio_final, campo)
+            if caminho_imagem and os.path.exists(caminho_imagem):
+                try:
+                    os.remove(caminho_imagem)
+                    print(f"[delete] Imagem do relatório final removida: {caminho_imagem}")
+                except Exception as e:
+                    print(f"[delete] Erro ao remover imagem do relatório final {caminho_imagem}: {e}")
+        db.session.delete(relatorio_final)
+    
+    # Excluir a ocorrência
+    db.session.delete(ocorrencia)
+    db.session.commit()
+    
+    flash('Ocorrência excluída com sucesso!', 'success')
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True)

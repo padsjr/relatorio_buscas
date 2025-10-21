@@ -1,0 +1,16 @@
+[Unit]
+Description=Sistema de Relatórios de Buscas
+After=network.target
+
+[Service]
+Type=simple
+User=relatorio
+Group=relatorio
+WorkingDirectory=/home/relatorio/relatorio_buscas
+Environment=PATH=/home/relatorio/relatorio_buscas/venv/bin
+ExecStart=/home/relatorio/relatorio_buscas/venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 4 --timeout 120 --access-logfile /home/relatorio/relatorio_buscas/logs/access.log --error-logfile /home/relatorio/relatorio_buscas/logs/error.log --log-level info --preload app:app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

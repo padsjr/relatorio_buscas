@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Visualizar Ocorrência #{{ ocorrencia.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Ocorrência #{{ ocorrencia.id }}</h1>
+            <div>
+                <a href="{{ url_for('editar', id=ocorrencia.id) }}" class="btn btn-warning">Editar</a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Voltar</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Status da Ocorrência -->
+        <div class="section">
+            <h2>Status da Ocorrência</h2>
+            <div class="d-flex align-items-center gap-2">
+                {% if ocorrencia.finalizada %}
+                    <span class="status-badge status-completed">Finalizada</span>
+                {% else %}
+                    <span class="status-badge status-pending">Em Andamento</span>
+                {% endif %}
+                <span class="text-muted">Criada em {{ ocorrencia.id }}</span>
+            </div>
+        </div>
+
+        <!-- Dados Básicos da Ocorrência -->
+        <div class="section">
+            <h2>1. Dados Básicos da Ocorrência</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tipo de Ocorrência</label>
+                    <div class="form-control">{{ ocorrencia.tipo or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Gênero</label>
+                    <div class="form-control">{{ ocorrencia.genero or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Data do Fato</label>
+                    <div class="form-control">{{ ocorrencia.data_fato or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Data de Acionamento</label>
+                    <div class="form-control">{{ ocorrencia.data_acionamento or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Link de Referência</label>
+                <div class="form-control">
+                    {% if ocorrencia.link %}
+                        <a href="{{ ocorrencia.link }}" target="_blank">{{ ocorrencia.link }}</a>
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Dados do Local -->
+        <div class="section">
+            <h2>2. Dados do Local</h2>
+            <div class="form-group">
+                <label>Endereço</label>
+                <div class="form-control">{{ ocorrencia.endereco or '-' }}</div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cidade</label>
+                    <div class="form-control">{{ ocorrencia.cidade or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Complemento</label>
+                    <div class="form-control">{{ ocorrencia.complemento or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Coordenadas</label>
+                <div class="form-control">{{ ocorrencia.coordenada or '-' }}</div>
+            </div>
+        </div>
+
+        <!-- Dados da Vítima -->
+        <div class="section">
+            <h2>3. Dados da Vítima</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nome da Vítima</label>
+                    <div class="form-control">{{ ocorrencia.nome_vitima or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>CPF</label>
+                    <div class="form-control">{{ ocorrencia.cpf or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Sexo</label>
+                    <div class="form-control">{{ ocorrencia.sexo or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Idade</label>
+                    <div class="form-control">{{ ocorrencia.idade or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Naturalidade</label>
+                <div class="form-control">{{ ocorrencia.naturalidade or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Filiação</label>
+                <div class="form-control">{{ ocorrencia.filiacao or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Contatos</label>
+                <div class="form-control">{{ ocorrencia.contatos or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Endereços</label>
+                <div class="form-control">{{ ocorrencia.enderecos or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Vestimentas</label>
+                <div class="form-control">{{ ocorrencia.vestimentas or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Características da Vítima</label>
+                <div class="form-control">{{ ocorrencia.caracteristicas_vitima or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Condições Neurológicas</label>
+                <div class="form-control">{{ ocorrencia.condicoes_neurologicas or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Informações Médicas</label>
+                <div class="form-control">{{ ocorrencia.inf_medicas or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Experiência e Resistência</label>
+                <div class="form-control">{{ ocorrencia.experiencia_e_resistencia or '-' }}</div>
+            </div>
+        </div>
+
+        <!-- Características da Área de Busca -->
+        <div class="section">
+            <h2>4. Características da Área de Busca</h2>
+            <div class="form-group">
+                <label>Tipo de Terreno/Água</label>
+                <div class="form-control">{{ ocorrencia.tipo_terreno_agua or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Condições do Terreno</label>
+                <div class="form-control">{{ ocorrencia.condicoes_do_tipo_terreno or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Condições Climáticas</label>
+                <div class="form-control">{{ ocorrencia.condicoes_climaticas or '-' }}</div>
+            </div>
+        </div>
+
+        <!-- Imagens -->
+        <div class="section">
+            <h2>5. Imagens</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Condições Meteorológicas</label>
+                    {% if ocorrencia.img_condic_metereologica %}
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_condic_metereologica.split('/')[-1]) }}" 
+                                 alt="Condições Meteorológicas" style="max-width: 200px; height: auto;">
+                        </div>
+                    {% else %}
+                        <div class="form-control">-</div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label>Imagem do Local</label>
+                    {% if ocorrencia.img_local %}
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_local.split('/')[-1]) }}" 
+                                 alt="Imagem do Local" style="max-width: 200px; height: auto;">
+                        </div>
+                    {% else %}
+                        <div class="form-control">-</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Imagem do UPV</label>
+                    {% if ocorrencia.img_upv %}
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_upv.split('/')[-1]) }}" 
+                                 alt="Imagem do UPV" style="max-width: 200px; height: auto;">
+                        </div>
+                    {% else %}
+                        <div class="form-control">-</div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label>Imagem de Satélite UPV</label>
+                    {% if ocorrencia.img_satelite_upv %}
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_satelite_upv.split('/')[-1]) }}" 
+                                 alt="Imagem de Satélite UPV" style="max-width: 200px; height: auto;">
+                        </div>
+                    {% else %}
+                        <div class="form-control">-</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Raio de Busca</label>
+                    {% if ocorrencia.img_raio_busca %}
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_raio_busca.split('/')[-1]) }}" 
+                                 alt="Raio de Busca" style="max-width: 200px; height: auto;">
+                        </div>
+                    {% else %}
+                        <div class="form-control">-</div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label>Tábua de Maré</label>
+                    {% if ocorrencia.img_tab_mare %}
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_tab_mare.split('/')[-1]) }}" 
+                                 alt="Tábua de Maré" style="max-width: 200px; height: auto;">
+                        </div>
+                    {% else %}
+                        <div class="form-control">-</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Previsão de Temperatura e Ondas</label>
+                {% if ocorrencia.img_prev_temp_onda %}
+                    <div class="form-control">
+                        <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_prev_temp_onda.split('/')[-1]) }}" 
+                             alt="Previsão de Temperatura e Ondas" style="max-width: 200px; height: auto;">
+                    </div>
+                {% else %}
+                    <div class="form-control">-</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Histórico da Ocorrência -->
+        <div class="section">
+            <h2>6. Histórico da Ocorrência</h2>
+            <div class="form-group">
+                <label>Histórico Detalhado</label>
+                <div class="form-control" style="min-height: 100px; white-space: pre-wrap;">{{ ocorrencia.historico_ocorrencia or '-' }}</div>
+            </div>
+        </div>
+
+        <!-- Ações -->
+        <div class="text-center mt-4">
+            <a href="{{ url_for('editar', id=ocorrencia.id) }}" class="btn btn-warning">Editar Ocorrência</a>
+            {% if not ocorrencia.finalizada %}
+                <a href="{{ url_for('novo_dia', id=ocorrencia.id) }}" class="btn btn-success">Adicionar Dia de Busca</a>
+                <a href="{{ url_for('finalizar', id=ocorrencia.id) }}" class="btn btn-info">Finalizar Ocorrência</a>
+            {% endif %}
+            <a href="{{ url_for('gerar', id=ocorrencia.id) }}" class="btn btn-primary">Gerar Relatório</a>
+            <button onclick="confirmDelete({{ ocorrencia.id }}, '{{ ocorrencia.nome_vitima or 'Ocorrência #' + ocorrencia.id|string }}')" 
+                    class="btn btn-danger">Excluir Ocorrência</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

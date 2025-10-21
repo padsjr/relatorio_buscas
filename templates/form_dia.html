@@ -1,64 +1,96 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <title>Novo Dia de Busca</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        form { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; }
-        .row { display: flex; gap: 16px; }
-        .col { flex: 1; }
-        label { display: block; font-weight: bold; margin-top: 10px; }
-        input, textarea { width: 100%; padding: 8px; }
-        button { margin-top: 16px; padding: 10px 16px; }
-    </style>
- </head>
- <body>
-   <h1>Novo Dia de Busca</h1>
-   <form method="POST" enctype="multipart/form-data">
-     <div class="row">
-       <div class="col">
-         <label>Data</label>
-         <input type="date" name="data" required>
-       </div>
-       <div class="col">
-         <label>Hora Início</label>
-         <input type="time" name="hora_ini">
-       </div>
-       <div class="col">
-         <label>Hora Fim</label>
-         <input type="time" name="hora_fim">
-       </div>
-     </div>
-     <label>Nº Ocorrência (se aplicável)</label>
-     <input name="numero_ocorrencia" type="text">
-     <label>Condições</label>
-     <input name="condicoes" type="text">
-     <div class="row">
-       <div class="col">
-         <label>Temp. Inicial</label>
-         <input name="temp_inicial" type="text">
-       </div>
-       <div class="col">
-         <label>Temp. Final</label>
-         <input name="temp_final" type="text">
-       </div>
-     </div>
-     <label>Guarnição</label>
-     <input name="guarnicao" type="text">
-     <label>Recursos</label>
-     <input name="recursos" type="text">
-     <label>Histórico</label>
-     <textarea name="historico" rows="5"></textarea>
-     <label>Imagem Tábua de Maré</label>
-     <input name="img_tab_mare" type="file">
-     <label>Imagem Previsão (Vento/Ondas)</label>
-     <input name="img_prev_temp" type="file">
-     <label>Imagem Trajetos/Buscas</label>
-     <input name="img_traj_buscas" type="file">
-     <button type="submit">Salvar</button>
-   </form>
- </body>
- </html>
+{% extends "base.html" %}
+
+{% block title %}Novo Dia de Busca{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Novo Dia de Busca</h1>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Voltar</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="data">Data <span class="required">*</span></label>
+                    <input type="date" name="data" id="data" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="hora_ini">Hora Início</label>
+                    <input type="time" name="hora_ini" id="hora_ini" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="hora_fim">Hora Fim</label>
+                    <input type="time" name="hora_fim" id="hora_fim" class="form-control">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="numero_ocorrencia">Nº Ocorrência (se aplicável)</label>
+                <input name="numero_ocorrencia" id="numero_ocorrencia" type="text" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label for="condicoes">Condições</label>
+                <input name="condicoes" id="condicoes" type="text" class="form-control">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="temp_inicial">Temp. Inicial</label>
+                    <input name="temp_inicial" id="temp_inicial" type="text" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="temp_final">Temp. Final</label>
+                    <input name="temp_final" id="temp_final" type="text" class="form-control">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="guarnicao">Guarnição</label>
+                <input name="guarnicao" id="guarnicao" type="text" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label for="recursos">Recursos</label>
+                <input name="recursos" id="recursos" type="text" class="form-control">
+            </div>
+            
+            <div class="form-group">
+                <label for="historico">Histórico</label>
+                <textarea name="historico" id="historico" rows="5" class="form-control"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <div class="file-input">
+                    <label for="img_tab_mare">Imagem Tábua de Maré</label>
+                    <input name="img_tab_mare" id="img_tab_mare" type="file" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="file-input">
+                    <label for="img_prev_temp">Imagem Previsão (Vento/Ondas)</label>
+                    <input name="img_prev_temp" id="img_prev_temp" type="file" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="file-input">
+                    <label for="img_traj_buscas">Imagem Trajetos/Buscas</label>
+                    <input name="img_traj_buscas" id="img_traj_buscas" type="file" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <button type="submit" class="btn btn-success">Salvar</button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
 
 

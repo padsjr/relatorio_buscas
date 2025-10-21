@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Ocorrência #{{ ocorrencia.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Editar Ocorrência #{{ ocorrencia.id }}</h1>
+            <div>
+                <a href="{{ url_for('visualizar', id=ocorrencia.id) }}" class="btn btn-secondary">Visualizar</a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Voltar</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <!-- DADOS BÁSICOS DA OCORRÊNCIA -->
+            <div class="section">
+                <h2>1. Dados Básicos da Ocorrência</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tipo">Tipo de Ocorrência <span class="required">*</span></label>
+                        <select name="tipo" id="tipo" class="form-control" required>
+                            <option value="">Selecione...</option>
+                            <option value="Salvamento" {% if ocorrencia.tipo == 'Salvamento' %}selected{% endif %}>Salvamento</option>
+                            <option value="Busca" {% if ocorrencia.tipo == 'Busca' %}selected{% endif %}>Busca</option>
+                            <option value="Resgate" {% if ocorrencia.tipo == 'Resgate' %}selected{% endif %}>Resgate</option>
+                            <option value="Outros" {% if ocorrencia.tipo == 'Outros' %}selected{% endif %}>Outros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="genero">Gênero <span class="required">*</span></label>
+                        <select name="genero" id="genero" class="form-control" required>
+                            <option value="">Selecione...</option>
+                            <option value="Masculino" {% if ocorrencia.genero == 'Masculino' %}selected{% endif %}>Masculino</option>
+                            <option value="Feminino" {% if ocorrencia.genero == 'Feminino' %}selected{% endif %}>Feminino</option>
+                            <option value="Não informado" {% if ocorrencia.genero == 'Não informado' %}selected{% endif %}>Não informado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data_fato">Data do Fato <span class="required">*</span></label>
+                        <input type="date" name="data_fato" id="data_fato" class="form-control" value="{{ ocorrencia.data_fato or '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="data_acionamento">Data de Acionamento</label>
+                        <input type="date" name="data_acionamento" id="data_acionamento" class="form-control" value="{{ ocorrencia.data_acionamento or '' }}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="link">Link de Referência</label>
+                    <input type="url" name="link" id="link" class="form-control" value="{{ ocorrencia.link or '' }}" placeholder="https://...">
+                </div>
+            </div>
+
+            <!-- DADOS DO LOCAL -->
+            <div class="section">
+                <h2>2. Dados do Local</h2>
+                
+                <div class="form-group">
+                    <label for="endereco">Endereço <span class="required">*</span></label>
+                    <input type="text" name="endereco" id="endereco" class="form-control" value="{{ ocorrencia.endereco or '' }}" required placeholder="Rua, número, bairro">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cidade">Cidade <span class="required">*</span></label>
+                        <input type="text" name="cidade" id="cidade" class="form-control" value="{{ ocorrencia.cidade or '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="complemento">Complemento</label>
+                        <input type="text" name="complemento" id="complemento" class="form-control" value="{{ ocorrencia.complemento or '' }}" placeholder="Ponto de referência, detalhes">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="coordenada">Coordenadas</label>
+                    <input type="text" name="coordenada" id="coordenada" class="form-control" value="{{ ocorrencia.coordenada or '' }}" placeholder="Latitude, Longitude">
+                </div>
+            </div>
+
+            <!-- DADOS DA VÍTIMA -->
+            <div class="section">
+                <h2>3. Dados da Vítima</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nome_vitima">Nome da Vítima <span class="required">*</span></label>
+                        <input type="text" name="nome_vitima" id="nome_vitima" class="form-control" value="{{ ocorrencia.nome_vitima or '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cpf">CPF</label>
+                        <input type="text" name="cpf" id="cpf" class="form-control" value="{{ ocorrencia.cpf or '' }}" placeholder="000.000.000-00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sexo">Sexo</label>
+                        <select name="sexo" id="sexo" class="form-control">
+                            <option value="">Selecione...</option>
+                            <option value="Masculino" {% if ocorrencia.sexo == 'Masculino' %}selected{% endif %}>Masculino</option>
+                            <option value="Feminino" {% if ocorrencia.sexo == 'Feminino' %}selected{% endif %}>Feminino</option>
+                            <option value="Não informado" {% if ocorrencia.sexo == 'Não informado' %}selected{% endif %}>Não informado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="idade">Idade</label>
+                        <input type="text" name="idade" id="idade" class="form-control" value="{{ ocorrencia.idade or '' }}" placeholder="Ex: 25 anos">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="naturalidade">Naturalidade</label>
+                    <input type="text" name="naturalidade" id="naturalidade" class="form-control" value="{{ ocorrencia.naturalidade or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="filiacao">Filiação</label>
+                    <input type="text" name="filiacao" id="filiacao" class="form-control" value="{{ ocorrencia.filiacao or '' }}" placeholder="Nome dos pais">
+                </div>
+
+                <div class="form-group">
+                    <label for="contatos">Contatos</label>
+                    <input type="text" name="contatos" id="contatos" class="form-control" value="{{ ocorrencia.contatos or '' }}" placeholder="Telefone, email">
+                </div>
+
+                <div class="form-group">
+                    <label for="enderecos">Endereços</label>
+                    <input type="text" name="enderecos" id="enderecos" class="form-control" value="{{ ocorrencia.enderecos or '' }}" placeholder="Endereço residencial">
+                </div>
+
+                <div class="form-group">
+                    <label for="vestimentas">Vestimentas</label>
+                    <textarea name="vestimentas" id="vestimentas" class="form-control" placeholder="Descrição das roupas que a vítima estava usando">{{ ocorrencia.vestimentas or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="caracteristicas_vitima">Características da Vítima</label>
+                    <textarea name="caracteristicas_vitima" id="caracteristicas_vitima" class="form-control" placeholder="Altura, peso, cor dos olhos, cabelo, etc.">{{ ocorrencia.caracteristicas_vitima or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="condicoes_neurologicas">Condições Neurológicas</label>
+                    <textarea name="condicoes_neurologicas" id="condicoes_neurologicas" class="form-control" placeholder="Alzheimer, demência, etc.">{{ ocorrencia.condicoes_neurologicas or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="inf_medicas">Informações Médicas</label>
+                    <textarea name="inf_medicas" id="inf_medicas" class="form-control" placeholder="Medicamentos, doenças, etc.">{{ ocorrencia.inf_medicas or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="experiencia_e_resistencia">Experiência e Resistência</label>
+                    <textarea name="experiencia_e_resistencia" id="experiencia_e_resistencia" class="form-control" placeholder="Experiência com água, natação, etc.">{{ ocorrencia.experiencia_e_resistencia or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- CARACTERÍSTICAS DA ÁREA DE BUSCA -->
+            <div class="section">
+                <h2>4. Características da Área de Busca</h2>
+                
+                <div class="form-group">
+                    <label for="tipo_terreno_agua">Tipo de Terreno/Água</label>
+                    <select name="tipo_terreno_agua" id="tipo_terreno_agua" class="form-control">
+                        <option value="">Selecione...</option>
+                        <option value="Mar" {% if ocorrencia.tipo_terreno_agua == 'Mar' %}selected{% endif %}>Mar</option>
+                        <option value="Rio" {% if ocorrencia.tipo_terreno_agua == 'Rio' %}selected{% endif %}>Rio</option>
+                        <option value="Lago" {% if ocorrencia.tipo_terreno_agua == 'Lago' %}selected{% endif %}>Lago</option>
+                        <option value="Piscina" {% if ocorrencia.tipo_terreno_agua == 'Piscina' %}selected{% endif %}>Piscina</option>
+                        <option value="Terreno" {% if ocorrencia.tipo_terreno_agua == 'Terreno' %}selected{% endif %}>Terreno</option>
+                        <option value="Outros" {% if ocorrencia.tipo_terreno_agua == 'Outros' %}selected{% endif %}>Outros</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="condicoes_do_tipo_terreno">Condições do Terreno</label>
+                    <textarea name="condicoes_do_tipo_terreno" id="condicoes_do_tipo_terreno" class="form-control" placeholder="Profundidade, correnteza, vegetação, etc.">{{ ocorrencia.condicoes_do_tipo_terreno or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="condicoes_climaticas">Condições Climáticas</label>
+                    <textarea name="condicoes_climaticas" id="condicoes_climaticas" class="form-control" placeholder="Temperatura, vento, chuva, visibilidade, etc.">{{ ocorrencia.condicoes_climaticas or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- IMAGENS -->
+            <div class="section">
+                <h2>5. Imagens</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_condic_metereologica">Condições Meteorológicas</label>
+                            <input type="file" name="img_condic_metereologica" id="img_condic_metereologica" accept="image/*">
+                        </div>
+                        {% if ocorrencia.img_condic_metereologica %}
+                            <div class="mt-2">
+                                <small class="text-muted">Imagem atual:</small><br>
+                                <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_condic_metereologica.split('/')[-1]) }}" 
+                                     alt="Condições Meteorológicas" style="max-width: 150px; height: auto;">
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_local">Imagem do Local</label>
+                            <input type="file" name="img_local" id="img_local" accept="image/*">
+                        </div>
+                        {% if ocorrencia.img_local %}
+                            <div class="mt-2">
+                                <small class="text-muted">Imagem atual:</small><br>
+                                <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_local.split('/')[-1]) }}" 
+                                     alt="Imagem do Local" style="max-width: 150px; height: auto;">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_upv">Imagem do UPV</label>
+                            <input type="file" name="img_upv" id="img_upv" accept="image/*">
+                        </div>
+                        {% if ocorrencia.img_upv %}
+                            <div class="mt-2">
+                                <small class="text-muted">Imagem atual:</small><br>
+                                <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_upv.split('/')[-1]) }}" 
+                                     alt="Imagem do UPV" style="max-width: 150px; height: auto;">
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_satelite_upv">Imagem de Satélite UPV</label>
+                            <input type="file" name="img_satelite_upv" id="img_satelite_upv" accept="image/*">
+                        </div>
+                        {% if ocorrencia.img_satelite_upv %}
+                            <div class="mt-2">
+                                <small class="text-muted">Imagem atual:</small><br>
+                                <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_satelite_upv.split('/')[-1]) }}" 
+                                     alt="Imagem de Satélite UPV" style="max-width: 150px; height: auto;">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_raio_busca">Raio de Busca</label>
+                            <input type="file" name="img_raio_busca" id="img_raio_busca" accept="image/*">
+                        </div>
+                        {% if ocorrencia.img_raio_busca %}
+                            <div class="mt-2">
+                                <small class="text-muted">Imagem atual:</small><br>
+                                <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_raio_busca.split('/')[-1]) }}" 
+                                     alt="Raio de Busca" style="max-width: 150px; height: auto;">
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <div class="file-input">
+                            <label for="img_tab_mare">Tábua de Maré</label>
+                            <input type="file" name="img_tab_mare" id="img_tab_mare" accept="image/*">
+                        </div>
+                        {% if ocorrencia.img_tab_mare %}
+                            <div class="mt-2">
+                                <small class="text-muted">Imagem atual:</small><br>
+                                <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_tab_mare.split('/')[-1]) }}" 
+                                     alt="Tábua de Maré" style="max-width: 150px; height: auto;">
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="file-input">
+                        <label for="img_prev_temp_onda">Previsão de Temperatura e Ondas</label>
+                        <input type="file" name="img_prev_temp_onda" id="img_prev_temp_onda" accept="image/*">
+                    </div>
+                    {% if ocorrencia.img_prev_temp_onda %}
+                        <div class="mt-2">
+                            <small class="text-muted">Imagem atual:</small><br>
+                            <img src="{{ url_for('static', filename='uploads/' + ocorrencia.img_prev_temp_onda.split('/')[-1]) }}" 
+                                 alt="Previsão de Temperatura e Ondas" style="max-width: 150px; height: auto;">
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- HISTÓRICO DA OCORRÊNCIA -->
+            <div class="section">
+                <h2>6. Histórico da Ocorrência</h2>
+                
+                <div class="form-group">
+                    <label for="historico_ocorrencia">Histórico Detalhado <span class="required">*</span></label>
+                    <textarea name="historico_ocorrencia" id="historico_ocorrencia" class="form-control" rows="6" required placeholder="Descreva detalhadamente como ocorreu o fato, circunstâncias, testemunhas, etc.">{{ ocorrencia.historico_ocorrencia or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button type="submit" class="btn btn-success">Salvar Alterações</button>
+                <a href="{{ url_for('visualizar', id=ocorrencia.id) }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,25 +1,87 @@
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>Relatórios de Busca</title></head>
-<body>
-<h1>Relatórios de Busca</h1>
-<a href="{{ url_for('nova') }}">Nova Ocorrência</a>
-<table border="1">
-<tr><th>ID</th><th>Tipo</th><th>Gênero</th><th>Data</th><th>Vítima</th><th>Ações</th></tr>
-{% for o in ocorrencias %}
-<tr>
-<td>{{ o.id }}</td>
-<td>{{ o.tipo }}</td>
-<td>{{ o.genero }}</td>
-<td>{{ o.data_fato }}</td>
-<td>{{ o.nome_vitima }}</td>
-<td>
-  <a href="{{ url_for('novo_dia', id=o.id) }}">Novo dia</a> |
-  <a href="{{ url_for('finalizar', id=o.id) }}">Finalizar</a> |
-  <a href="{{ url_for('gerar', id=o.id) }}">Gerar .docx</a>
-</td>
-</tr>
-{% endfor %}
-</table>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Relatórios de Busca{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h1>Relatórios de Busca</h1>
+    </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="{{ url_for('nova') }}" class="btn btn-success">Nova Ocorrência</a>
+            <div>
+                <span class="text-muted">Total de ocorrências: {{ ocorrencias|length }}</span>
+            </div>
+        </div>
+
+        {% if ocorrencias %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tipo</th>
+                        <th>Gênero</th>
+                        <th>Data do Fato</th>
+                        <th>Vítima</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in ocorrencias %}
+                    <tr>
+                        <td><strong>#{{ o.id }}</strong></td>
+                        <td>{{ o.tipo or '-' }}</td>
+                        <td>{{ o.genero or '-' }}</td>
+                        <td>{{ o.data_fato or '-' }}</td>
+                        <td>{{ o.nome_vitima or '-' }}</td>
+                        <td>
+                            {% if o.finalizada %}
+                                <span class="status-badge status-completed">Finalizada</span>
+                            {% else %}
+                                <span class="status-badge status-pending">Em Andamento</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <a href="{{ url_for('visualizar', id=o.id) }}" class="btn btn-sm btn-outline-secondary" title="Visualizar">
+                                    Ver
+                                </a>
+                                <a href="{{ url_for('editar', id=o.id) }}" class="btn btn-sm btn-outline-warning" title="Editar">
+                                    Editar
+                                </a>
+                                {% if not o.finalizada %}
+                                    <a href="{{ url_for('novo_dia', id=o.id) }}" class="btn btn-sm btn-outline-success" title="Adicionar Novo Dia">
+                                        Novo Dia
+                                    </a>
+                                    <a href="{{ url_for('finalizar', id=o.id) }}" class="btn btn-sm btn-outline-info" title="Finalizar Ocorrência">
+                                        Finalizar
+                                    </a>
+                                {% endif %}
+                                <a href="{{ url_for('gerar', id=o.id) }}" class="btn btn-sm btn-outline-primary" title="Gerar Relatório PDF">
+                                    Relatório
+                                </a>
+                                <button onclick="confirmDelete({{ o.id }}, '{{ o.nome_vitima or 'Ocorrência #' + o.id|string }}')" 
+                                        class="btn btn-sm btn-outline-danger" title="Excluir Ocorrência">
+                                    Excluir
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center mt-5">
+            <div style="font-size: 4rem; color: #ccc; margin-bottom: 20px;">📋</div>
+            <h3>Nenhuma ocorrência encontrada</h3>
+            <p class="text-muted">Comece criando uma nova ocorrência para gerenciar seus relatórios de busca.</p>
+            <a href="{{ url_for('nova') }}" class="btn btn-success btn-lg">Criar Primeira Ocorrência</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
