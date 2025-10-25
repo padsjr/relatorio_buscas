@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Dia de Busca{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Editar Dia de Busca</h1>
+            <div>
+                <a href="{{ url_for('visualizar', id=ocorrencia.id) }}" class="btn btn-secondary">Voltar</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="data">Data <span class="required">*</span></label>
+                    <input type="date" name="data" id="data" class="form-control" value="{{ dia.data }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="hora_ini">Hora Início</label>
+                    <input type="time" name="hora_ini" id="hora_ini" class="form-control" value="{{ dia.hora_ini }}">
+                </div>
+                <div class="form-group">
+                    <label for="hora_fim">Hora Fim</label>
+                    <input type="time" name="hora_fim" id="hora_fim" class="form-control" value="{{ dia.hora_fim }}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="numero_ocorrencia">Nº Ocorrência (se aplicável)</label>
+                <input name="numero_ocorrencia" id="numero_ocorrencia" type="text" class="form-control" value="{{ dia.numero_ocorrencia }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="condicoes">Condições</label>
+                <input name="condicoes" id="condicoes" type="text" class="form-control" value="{{ dia.condicoes }}">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="temp_inicial">Temp. Inicial</label>
+                    <input name="temp_inicial" id="temp_inicial" type="text" class="form-control" value="{{ dia.temp_inicial }}">
+                </div>
+                <div class="form-group">
+                    <label for="temp_final">Temp. Final</label>
+                    <input name="temp_final" id="temp_final" type="text" class="form-control" value="{{ dia.temp_final }}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="guarnicao">Guarnição</label>
+                <input name="guarnicao" id="guarnicao" type="text" class="form-control" value="{{ dia.guarnicao }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="recursos">Recursos</label>
+                <input name="recursos" id="recursos" type="text" class="form-control" value="{{ dia.recursos }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="historico">Histórico</label>
+                <textarea name="historico" id="historico" rows="5" class="form-control">{{ dia.historico }}</textarea>
+            </div>
+            
+            <!-- Imagens existentes -->
+            <div class="form-group">
+                <label>Imagens Atuais</label>
+                <div class="form-row">
+                    {% if dia.img_tab_mare %}
+                    <div class="form-group col-md-4">
+                        <label>Tábua de Maré</label>
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + dia.img_tab_mare.split('/')[-1]) }}" 
+                                 alt="Tábua de Maré" style="max-width: 150px; height: auto;">
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if dia.img_prev_temp %}
+                    <div class="form-group col-md-4">
+                        <label>Previsão (Vento/Ondas)</label>
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + dia.img_prev_temp.split('/')[-1]) }}" 
+                                 alt="Previsão" style="max-width: 150px; height: auto;">
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if dia.img_traj_buscas %}
+                    <div class="form-group col-md-4">
+                        <label>Trajetos/Buscas</label>
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + dia.img_traj_buscas.split('/')[-1]) }}" 
+                                 alt="Trajetos" style="max-width: 150px; height: auto;">
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="file-input">
+                    <label for="img_tab_mare">Nova Imagem Tábua de Maré (deixe em branco para manter a atual)</label>
+                    <input name="img_tab_mare" id="img_tab_mare" type="file" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="file-input">
+                    <label for="img_prev_temp">Nova Imagem Previsão (Vento/Ondas) (deixe em branco para manter a atual)</label>
+                    <input name="img_prev_temp" id="img_prev_temp" type="file" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div class="file-input">
+                    <label for="img_traj_buscas">Nova Imagem Trajetos/Buscas (deixe em branco para manter a atual)</label>
+                    <input name="img_traj_buscas" id="img_traj_buscas" type="file" accept="image/*">
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <button type="submit" class="btn btn-success">Salvar Alterações</button>
+                <a href="{{ url_for('visualizar', id=ocorrencia.id) }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

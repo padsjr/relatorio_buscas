@@ -25,6 +25,45 @@ db = SQLAlchemy(app)
 # Garante que a pasta de uploads exista
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# Filtro para formatação de datas brasileiras
+@app.template_filter('data_br')
+def data_br(data_str):
+    """Converte data no formato YYYY-MM-DD para DD/MM/YYYY"""
+    if not data_str:
+        return '-'
+    try:
+        # Se já está no formato brasileiro, retorna como está
+        if '/' in data_str and len(data_str.split('/')) == 3:
+            return data_str
+        
+        # Se está no formato ISO (YYYY-MM-DD), converte para brasileiro
+        if '-' in data_str and len(data_str.split('-')) == 3:
+            partes = data_str.split('-')
+            if len(partes[0]) == 4:  # YYYY-MM-DD
+                return f"{partes[2]}/{partes[1]}/{partes[0]}"
+            elif len(partes[2]) == 4:  # DD-MM-YYYY
+                return f"{partes[0]}/{partes[1]}/{partes[2]}"
+        
+        return data_str
+    except:
+        return data_str
+
+@app.template_filter('datetime_br')
+def datetime_br(datetime_str):
+    """Converte datetime para formato brasileiro DD/MM/YYYY HH:MM"""
+    if not datetime_str:
+        return '-'
+    try:
+        # Se contém data e hora separadas por espaço
+        if ' ' in datetime_str:
+            data_part, hora_part = datetime_str.split(' ', 1)
+            data_formatada = data_br(data_part)
+            return f"{data_formatada} {hora_part}"
+        
+        return data_br(datetime_str)
+    except:
+        return datetime_str
+
 # ---------------------------
 # MODELOS DO BANCO
 # ---------------------------
@@ -456,7 +495,9 @@ def gerar(id):
 @app.route('/visualizar/<int:id>')
 def visualizar(id):
     ocorrencia = Ocorrencia.query.get_or_404(id)
-    return render_template('visualizar.html', ocorrencia=ocorrencia)
+    dias_busca = DiaBusca.query.filter_by(ocorrencia_id=id).order_by(DiaBusca.data).all()
+    relatorio_final = RelatorioFinal.query.filter_by(ocorrencia_id=id).first()
+    return render_template('visualizar.html', ocorrencia=ocorrencia, dias_busca=dias_busca, relatorio_final=relatorio_final)
 
 @app.route('/editar/<int:id>', methods=['GET', 'POST'])
 def editar(id):
@@ -516,6 +557,66 @@ def editar(id):
         return redirect(url_for('visualizar', id=id))
     
     return render_template('editar.html', ocorrencia=ocorrencia)
+
+@app.route('/editar_dia/<int:id>', methods=['GET', 'POST'])
+def editar_dia(id):
+    dia = DiaBusca.query.get_or_404(id)
+    ocorrencia = Ocorrencia.query.get_or_404(dia.ocorrencia_id)
+    
+    if request.method == 'POST':
+        # Atualizar dados do dia
+        dia.data = request.form.get('data','')
+        dia.hora_ini = request.form.get('hora_ini','')
+        dia.hora_fim = request.form.get('hora_fim','')
+        dia.numero_ocorrencia = request.form.get('numero_ocorrencia','')
+        dia.condicoes = request.form.get('condicoes','')
+        dia.temp_inicial = request.form.get('temp_inicial','')
+        dia.temp_final = request.form.get('temp_final','')
+        dia.guarnicao = request.form.get('guarnicao','')
+        dia.recursos = request.form.get('recursos','')
+        dia.historico = request.form.get('historico','')
+        
+        # Processar imagens (apenas se novas imagens foram enviadas)
+        for campo, form_key in [
+            ('img_tab_mare','img_tab_mare'),
+            ('img_prev_temp','img_prev_temp'),
+            ('img_traj_buscas','img_traj_buscas')
+        ]:
+            f = request.files.get(form_key)
+            if f and f.filename:
+                filename = secure_filename(f.filename)
+                path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                f.save(path)
+                setattr(dia, campo, path)
+                print(f"[upload] Atualizado dia '{campo}' em {os.path.abspath(path)}")
+        
+        db.session.commit()
+        flash('Dia de busca atualizado com sucesso!', 'success')
+        return redirect(url_for('visualizar', id=dia.ocorrencia_id))
+    
+    return render_template('editar_dia.html', dia=dia, ocorrencia=ocorrencia)
+
+@app.route('/excluir_dia/<int:id>')
+def excluir_dia(id):
+    dia = DiaBusca.query.get_or_404(id)
+    ocorrencia_id = dia.ocorrencia_id
+    
+    # Excluir imagens do dia de busca
+    campos_dia = ['img_tab_mare', 'img_prev_temp', 'img_traj_buscas']
+    for campo in campos_dia:
+        caminho_imagem = getattr(dia, campo)
+        if caminho_imagem and os.path.exists(caminho_imagem):
+            try:
+                os.remove(caminho_imagem)
+                print(f"[delete] Imagem do dia removida: {caminho_imagem}")
+            except Exception as e:
+                print(f"[delete] Erro ao remover imagem do dia {caminho_imagem}: {e}")
+    
+    db.session.delete(dia)
+    db.session.commit()
+    
+    flash('Dia de busca excluído com sucesso!', 'success')
+    return redirect(url_for('visualizar', id=ocorrencia_id))
 
 @app.route('/excluir/<int:id>')
 def excluir(id):

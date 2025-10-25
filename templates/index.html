@@ -35,7 +35,7 @@
                         <td><strong>#{{ o.id }}</strong></td>
                         <td>{{ o.tipo or '-' }}</td>
                         <td>{{ o.genero or '-' }}</td>
-                        <td>{{ o.data_fato or '-' }}</td>
+                        <td>{{ o.data_fato|datetime_br }}</td>
                         <td>{{ o.nome_vitima or '-' }}</td>
                         <td>
                             {% if o.finalizada %}

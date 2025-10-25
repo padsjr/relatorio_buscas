@@ -43,11 +43,11 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>Data do Fato</label>
-                    <div class="form-control">{{ ocorrencia.data_fato or '-' }}</div>
+                    <div class="form-control">{{ ocorrencia.data_fato|datetime_br }}</div>
                 </div>
                 <div class="form-group">
                     <label>Data de Acionamento</label>
-                    <div class="form-control">{{ ocorrencia.data_acionamento or '-' }}</div>
+                    <div class="form-control">{{ ocorrencia.data_acionamento|datetime_br }}</div>
                 </div>
             </div>
             <div class="form-group">
@@ -260,6 +260,183 @@
             </div>
         </div>
 
+        <!-- Dias de Busca -->
+        {% if dias_busca %}
+        <div class="section">
+            <h2>7. Dias de Busca</h2>
+            {% for dia in dias_busca %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Dia {{ loop.index }} - {{ dia.data|data_br }}</h5>
+                        {% if not ocorrencia.finalizada %}
+                        <div>
+                            <a href="{{ url_for('editar_dia', id=dia.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                            <button onclick="confirmDeleteDia({{ dia.id }}, 'Dia {{ loop.index }} - {{ dia.data|data_br }}')" 
+                                    class="btn btn-sm btn-danger">Excluir</button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Hora Início</label>
+                            <div class="form-control">{{ dia.hora_ini or '-' }}</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Hora Fim</label>
+                            <div class="form-control">{{ dia.hora_fim or '-' }}</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Nº Ocorrência</label>
+                            <div class="form-control">{{ dia.numero_ocorrencia or '-' }}</div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Condições</label>
+                        <div class="form-control">{{ dia.condicoes or '-' }}</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Temp. Inicial</label>
+                            <div class="form-control">{{ dia.temp_inicial or '-' }}</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Temp. Final</label>
+                            <div class="form-control">{{ dia.temp_final or '-' }}</div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Guarnição</label>
+                        <div class="form-control">{{ dia.guarnicao or '-' }}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Recursos</label>
+                        <div class="form-control">{{ dia.recursos or '-' }}</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Histórico</label>
+                        <div class="form-control" style="min-height: 80px; white-space: pre-wrap;">{{ dia.historico or '-' }}</div>
+                    </div>
+                    
+                    <!-- Imagens do Dia -->
+                    {% if dia.img_tab_mare or dia.img_prev_temp or dia.img_traj_buscas %}
+                    <div class="form-group">
+                        <label>Imagens do Dia</label>
+                        <div class="form-row">
+                            {% if dia.img_tab_mare %}
+                            <div class="form-group col-md-4">
+                                <label>Tábua de Maré</label>
+                                <div class="form-control">
+                                    <img src="{{ url_for('static', filename='uploads/' + dia.img_tab_mare.split('/')[-1]) }}" 
+                                         alt="Tábua de Maré" style="max-width: 200px; height: auto;">
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if dia.img_prev_temp %}
+                            <div class="form-group col-md-4">
+                                <label>Previsão (Vento/Ondas)</label>
+                                <div class="form-control">
+                                    <img src="{{ url_for('static', filename='uploads/' + dia.img_prev_temp.split('/')[-1]) }}" 
+                                         alt="Previsão" style="max-width: 200px; height: auto;">
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if dia.img_traj_buscas %}
+                            <div class="form-group col-md-4">
+                                <label>Trajetos/Buscas</label>
+                                <div class="form-control">
+                                    <img src="{{ url_for('static', filename='uploads/' + dia.img_traj_buscas.split('/')[-1]) }}" 
+                                         alt="Trajetos" style="max-width: 200px; height: auto;">
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Relatório Final -->
+        {% if relatorio_final %}
+        <div class="section">
+            <h2>8. Relatório Final</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Status da Vítima</label>
+                    <div class="form-control">{{ relatorio_final.status_vitima or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Estado Biológico</label>
+                    <div class="form-control">{{ relatorio_final.estado_biologico or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Coordenada da Vítima</label>
+                    <div class="form-control">{{ relatorio_final.coordenada_vitima or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Temp. da Água</label>
+                    <div class="form-control">{{ relatorio_final.temp_agua or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Estado do Corpo</label>
+                <div class="form-control">{{ relatorio_final.estado_corpo or '-' }}</div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tempo Total de Buscas</label>
+                    <div class="form-control">{{ relatorio_final.temp_total_buscas or '-' }}</div>
+                </div>
+                <div class="form-group">
+                    <label>Efetivo Total</label>
+                    <div class="form-control">{{ relatorio_final.efetiv_total or '-' }}</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Recursos Empregados</label>
+                <div class="form-control">{{ relatorio_final.rec_empreg or '-' }}</div>
+            </div>
+            <div class="form-group">
+                <label>Relato Final</label>
+                <div class="form-control" style="min-height: 100px; white-space: pre-wrap;">{{ relatorio_final.relato or '-' }}</div>
+            </div>
+            
+            <!-- Imagens do Relatório Final -->
+            {% if relatorio_final.img_corpo or relatorio_final.img_local_corpo %}
+            <div class="form-group">
+                <label>Imagens do Relatório Final</label>
+                <div class="form-row">
+                    {% if relatorio_final.img_corpo %}
+                    <div class="form-group col-md-6">
+                        <label>Imagem do Corpo</label>
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + relatorio_final.img_corpo.split('/')[-1]) }}" 
+                                 alt="Imagem do Corpo" style="max-width: 200px; height: auto;">
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if relatorio_final.img_local_corpo %}
+                    <div class="form-group col-md-6">
+                        <label>Imagem do Local do Corpo</label>
+                        <div class="form-control">
+                            <img src="{{ url_for('static', filename='uploads/' + relatorio_final.img_local_corpo.split('/')[-1]) }}" 
+                                 alt="Imagem do Local do Corpo" style="max-width: 200px; height: auto;">
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <!-- Ações -->
         <div class="text-center mt-4">
             <a href="{{ url_for('editar', id=ocorrencia.id) }}" class="btn btn-warning">Editar Ocorrência</a>
@@ -273,4 +450,13 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Confirmação para exclusão de dias de busca
+    function confirmDeleteDia(id, nome) {
+        if (confirm(`Tem certeza que deseja excluir o "${nome}"? Esta ação não pode ser desfeita.`)) {
+            window.location.href = `/excluir_dia/${id}`;
+        }
+    }
+</script>
 {% endblock %}
