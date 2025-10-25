@@ -30,15 +30,9 @@
         <!-- Dados Básicos da Ocorrência -->
         <div class="section">
             <h2>1. Dados Básicos da Ocorrência</h2>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Tipo de Ocorrência</label>
-                    <div class="form-control">{{ ocorrencia.tipo or '-' }}</div>
-                </div>
-                <div class="form-group">
-                    <label>Gênero</label>
-                    <div class="form-control">{{ ocorrencia.genero or '-' }}</div>
-                </div>
+            <div class="form-group">
+                <label>Tipo de Ocorrência</label>
+                <div class="form-control">{{ ocorrencia.tipo or '-' }}</div>
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -51,7 +45,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Link de Referência</label>
+                <label>Link com Tracks do Google Earth</label>
                 <div class="form-control">
                     {% if ocorrencia.link %}
                         <a href="{{ ocorrencia.link }}" target="_blank">{{ ocorrencia.link }}</a>
@@ -268,7 +262,9 @@
             <div class="card mb-3">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Dia {{ loop.index }} - {{ dia.data|data_br }}</h5>
+                        {% set nomes_dias = {1: "primeiro", 2: "segundo", 3: "terceiro", 4: "quarto", 5: "quinto", 6: "sexto", 7: "sétimo", 8: "oitavo", 9: "nono", 10: "décimo"} %}
+                        {% set nome_dia = nomes_dias.get(loop.index, loop.index ~ "º") %}
+                        <h5 class="mb-0">{{ nome_dia|title }} dia de busca - {{ dia.data|data_br }}</h5>
                         {% if not ocorrencia.finalizada %}
                         <div>
                             <a href="{{ url_for('editar_dia', id=dia.id) }}" class="btn btn-sm btn-warning">Editar</a>
@@ -318,6 +314,19 @@
                     <div class="form-group">
                         <label>Histórico</label>
                         <div class="form-control" style="min-height: 80px; white-space: pre-wrap;">{{ dia.historico or '-' }}</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Status da Vítima</label>
+                        <div class="form-control">
+                            {% if dia.status_vitima == 'Localizada' %}
+                                <span class="badge bg-success">{{ dia.status_vitima }}</span>
+                            {% elif dia.status_vitima == 'Não localizada' %}
+                                <span class="badge bg-warning">{{ dia.status_vitima }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
                     </div>
                     
                     <!-- Imagens do Dia -->
@@ -441,7 +450,9 @@
         <div class="text-center mt-4">
             <a href="{{ url_for('editar', id=ocorrencia.id) }}" class="btn btn-warning">Editar Ocorrência</a>
             {% if not ocorrencia.finalizada %}
-                <a href="{{ url_for('novo_dia', id=ocorrencia.id) }}" class="btn btn-success">Adicionar Dia de Busca</a>
+                {% if dias_busca|length < 10 %}
+                    <a href="{{ url_for('novo_dia', id=ocorrencia.id) }}" class="btn btn-success">Adicionar Dia de Busca</a>
+                {% endif %}
                 <a href="{{ url_for('finalizar', id=ocorrencia.id) }}" class="btn btn-info">Finalizar Ocorrência</a>
             {% endif %}
             <a href="{{ url_for('gerar', id=ocorrencia.id) }}" class="btn btn-primary">Gerar Relatório</a>

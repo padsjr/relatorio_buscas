@@ -43,7 +43,7 @@ python app.py
 
 #### Tabela: Ocorrencia
 - `id`: Chave primária
-- `tipo`, `genero`: Dados básicos da ocorrência
+- `tipo`: Dados básicos da ocorrência
 - `data_fato`, `data_acionamento`: Datas importantes
 - `endereco`, `cidade`, `coordenada`: Localização
 - `nome_vitima`, `cpf`, `sexo`, `idade`: Dados da vítima

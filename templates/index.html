@@ -22,7 +22,6 @@
                     <tr>
                         <th>ID</th>
                         <th>Tipo</th>
-                        <th>Gênero</th>
                         <th>Data do Fato</th>
                         <th>Vítima</th>
                         <th>Status</th>
@@ -34,7 +33,6 @@
                     <tr>
                         <td><strong>#{{ o.id }}</strong></td>
                         <td>{{ o.tipo or '-' }}</td>
-                        <td>{{ o.genero or '-' }}</td>
                         <td>{{ o.data_fato|datetime_br }}</td>
                         <td>{{ o.nome_vitima or '-' }}</td>
                         <td>

@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h1>Novo Dia de Busca</h1>
+            <h1>{{ nome_dia|title }} Dia de Busca</h1>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Voltar</a>
         </div>
     </div>
@@ -61,6 +61,15 @@
             <div class="form-group">
                 <label for="historico">Histórico</label>
                 <textarea name="historico" id="historico" rows="5" class="form-control"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="status_vitima">Status da Vítima <span class="required">*</span></label>
+                <select name="status_vitima" id="status_vitima" class="form-control" required>
+                    <option value="">Selecione...</option>
+                    <option value="Localizada">Localizada</option>
+                    <option value="Não localizada">Não localizada</option>
+                </select>
             </div>
             
             <div class="form-group">

@@ -70,7 +70,6 @@ def datetime_br(datetime_str):
 class Ocorrencia(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tipo = db.Column(db.String(100))
-    genero = db.Column(db.String(100))
     data_fato = db.Column(db.String(50))
     data_acionamento = db.Column(db.String(50))
     link = db.Column(db.String(255))
@@ -119,6 +118,7 @@ class DiaBusca(db.Model):
     guarnicao = db.Column(db.String(255))
     recursos = db.Column(db.String(255))
     historico = db.Column(db.Text)
+    status_vitima = db.Column(db.String(50))  # Localizada, Não localizada
     img_tab_mare = db.Column(db.String(255))
     img_prev_temp = db.Column(db.String(255))
     img_traj_buscas = db.Column(db.String(255))
@@ -150,6 +150,12 @@ with app.app_context():
 # UTILITÁRIOS DE DOCX
 # ---------------------------
 
+def get_value_or_default(value, default="Não informado"):
+    """Retorna o valor fornecido ou o padrão se estiver vazio/None"""
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return default
+    return str(value)
+
 def _iter_block_items(doc):
     for p in doc.paragraphs:
         yield p
@@ -158,6 +164,16 @@ def _iter_block_items(doc):
             for cell in row.cells:
                 for para in cell.paragraphs:
                     yield para
+    # Incluir rodapés e cabeçalhos
+    for section in doc.sections:
+        # Rodapé
+        if hasattr(section, 'footer') and section.footer:
+            for para in section.footer.paragraphs:
+                yield para
+        # Cabeçalho
+        if hasattr(section, 'header') and section.header:
+            for para in section.header.paragraphs:
+                yield para
 
 def replace_placeholders(doc: Document, mapping: dict, image_keys: list):
     """Substitui placeholders de texto e insere imagens.
@@ -176,7 +192,9 @@ def replace_placeholders(doc: Document, mapping: dict, image_keys: list):
             tokens = [f"{{{{{k}}}}}", f"substituir_{k}", f"[{k}]"]
             for token in tokens:
                 if token in para.text:
-                    para.text = para.text.replace(token, str(v if v is not None else ""))
+                    # Se o valor está vazio ou None, usar "Não informado"
+                    valor = get_value_or_default(v)
+                    para.text = para.text.replace(token, valor)
 
     # Imagens
     for para in list(_iter_block_items(doc)):
@@ -216,7 +234,9 @@ def replace_phrase_map(doc: Document, phrase_map: dict, image_phrase_map: dict):
         changed = False
         for phrase, value in phrase_map.items():
             if phrase and phrase in text:
-                text = text.replace(phrase, str(value if value is not None else ''))
+                # Se o valor está vazio ou None, usar "Não informado"
+                valor = get_value_or_default(value)
+                text = text.replace(phrase, valor)
                 changed = True
         if changed:
             para.text = text
@@ -252,7 +272,6 @@ def nova():
         
         # Dados básicos da ocorrência
         o.tipo = request.form.get('tipo', '')
-        o.genero = request.form.get('genero', '')
         o.data_fato = request.form.get('data_fato', '')
         o.data_acionamento = request.form.get('data_acionamento', '')
         o.link = request.form.get('link', '')
@@ -304,9 +323,28 @@ def nova():
     
     return render_template('form_ocorrencia.html')
 
+def get_proximo_numero_dia(ocorrencia_id):
+    """Retorna o próximo número do dia de busca para uma ocorrência"""
+    dias_existentes = DiaBusca.query.filter_by(ocorrencia_id=ocorrencia_id).count()
+    return dias_existentes + 1
+
+def get_nome_dia(numero):
+    """Retorna o nome do dia baseado no número (1º, 2º, ..., 10º)"""
+    nomes = {
+        1: "primeiro", 2: "segundo", 3: "terceiro", 4: "quarto", 5: "quinto",
+        6: "sexto", 7: "sétimo", 8: "oitavo", 9: "nono", 10: "décimo"
+    }
+    return nomes.get(numero, f"{numero}º")
+
 @app.route('/ocorrencia/<int:id>/novo_dia', methods=['GET','POST'])
 def novo_dia(id):
     if request.method == 'POST':
+        # Verificar se já existem 10 dias de busca
+        dias_existentes = DiaBusca.query.filter_by(ocorrencia_id=id).count()
+        if dias_existentes >= 10:
+            flash('Limite máximo de 10 dias de busca atingido!', 'error')
+            return redirect(url_for('visualizar', id=id))
+        
         d = DiaBusca()
         d.ocorrencia_id = id
         d.data = request.form.get('data','')
@@ -319,6 +357,7 @@ def novo_dia(id):
         d.guarnicao = request.form.get('guarnicao','')
         d.recursos = request.form.get('recursos','')
         d.historico = request.form.get('historico','')
+        d.status_vitima = request.form.get('status_vitima','')
         # imagens
         for campo, form_key in [
             ('img_tab_mare','img_tab_mare'),
@@ -335,7 +374,16 @@ def novo_dia(id):
         db.session.add(d)
         db.session.commit()
         return redirect(url_for('index'))
-    return render_template('form_dia.html', id=id)
+    
+    # Verificar se já existem 10 dias de busca
+    dias_existentes = DiaBusca.query.filter_by(ocorrencia_id=id).count()
+    if dias_existentes >= 10:
+        flash('Limite máximo de 10 dias de busca atingido!', 'error')
+        return redirect(url_for('visualizar', id=id))
+    
+    proximo_numero = get_proximo_numero_dia(id)
+    nome_dia = get_nome_dia(proximo_numero)
+    return render_template('form_dia.html', id=id, proximo_numero=proximo_numero, nome_dia=nome_dia)
 
 @app.route('/ocorrencia/<int:id>/finalizar', methods=['GET','POST'])
 def finalizar(id):
@@ -388,7 +436,6 @@ def gerar(id):
         replace_placeholders(base_doc, mapping, image_keys)
         phrase_map = {
             'substituir pelo tipo fornecido pelo usuario': oc.tipo,
-            'substituir pelo genero fornecido pelo usuario': oc.genero,
             'substituir pelo data/hora do fato fornecido pelo usuario': oc.data_fato,
             'substituir pelo data/hora de acionamento fornecido pelo usuario': oc.data_acionamento,
             'substituir pelo link fornecido pelo usuario': oc.link,
@@ -421,10 +468,13 @@ def gerar(id):
             ddoc = Document(dia_tpl_path)
             # Anexa o template do dia ao documento final
             append_document(base_doc, ddoc)
+            # Obter nome do dia
+            nome_dia = get_nome_dia(i)
             # Substituições direto no base_doc
             dmapping = {
                 **{k: v for k, v in oc.__dict__.items() if k != '_sa_instance_state'},
                 'dia_indice': i,
+                'dia_nome': nome_dia,
                 'dia_data': dia.data,
                 'dia_hora_inicio': dia.hora_ini,
                 'dia_hora_fim': dia.hora_fim,
@@ -435,6 +485,7 @@ def gerar(id):
                 'dia_guarnicao': dia.guarnicao,
                 'dia_recursos': dia.recursos,
                 'dia_historico': dia.historico,
+                'dia_status_vitima': dia.status_vitima,
                 'img_tab_mare_dia': dia.img_tab_mare,
                 'img_prev_temp_dia': dia.img_prev_temp,
                 'img_traj_buscas_dia': dia.img_traj_buscas,
@@ -442,6 +493,7 @@ def gerar(id):
             image_keys = ['img_tab_mare_dia','img_prev_temp_dia','img_traj_buscas_dia']
             replace_placeholders(base_doc, dmapping, image_keys)
             phrase_map = {
+                'substituir pelo nome do dia fornecido pelo usuario': nome_dia,
                 'substituir pela data do dia fornecido pelo usuario': dia.data,
                 'substituir pelo horario de inicio fornecido pelo usuario': dia.hora_ini,
                 'substituir pelo horario de fim fornecido pelo usuario': dia.hora_fim,
@@ -452,6 +504,7 @@ def gerar(id):
                 'substituir pela guarnicao fornecida pelo usuario': dia.guarnicao,
                 'substituir pelos recursos fornecidos pelo usuario': dia.recursos,
                 'substituir pelo historico do dia fornecido pelo usuario': dia.historico,
+                'substituir pelo status da vitima fornecido pelo usuario': dia.status_vitima,
             }
             image_phrase_map = {
                 'inserir imagem tábua de maré do dia fornecida pelo usuario': dia.img_tab_mare,
@@ -506,7 +559,6 @@ def editar(id):
     if request.method == 'POST':
         # Dados básicos da ocorrência
         ocorrencia.tipo = request.form.get('tipo', '')
-        ocorrencia.genero = request.form.get('genero', '')
         ocorrencia.data_fato = request.form.get('data_fato', '')
         ocorrencia.data_acionamento = request.form.get('data_acionamento', '')
         ocorrencia.link = request.form.get('link', '')
@@ -563,6 +615,14 @@ def editar_dia(id):
     dia = DiaBusca.query.get_or_404(id)
     ocorrencia = Ocorrencia.query.get_or_404(dia.ocorrencia_id)
     
+    # Obter o número do dia baseado na ordem de criação
+    dias_anteriores = DiaBusca.query.filter(
+        DiaBusca.ocorrencia_id == dia.ocorrencia_id,
+        DiaBusca.id < dia.id
+    ).count()
+    numero_dia = dias_anteriores + 1
+    nome_dia = get_nome_dia(numero_dia)
+    
     if request.method == 'POST':
         # Atualizar dados do dia
         dia.data = request.form.get('data','')
@@ -575,6 +635,7 @@ def editar_dia(id):
         dia.guarnicao = request.form.get('guarnicao','')
         dia.recursos = request.form.get('recursos','')
         dia.historico = request.form.get('historico','')
+        dia.status_vitima = request.form.get('status_vitima','')
         
         # Processar imagens (apenas se novas imagens foram enviadas)
         for campo, form_key in [
@@ -594,7 +655,7 @@ def editar_dia(id):
         flash('Dia de busca atualizado com sucesso!', 'success')
         return redirect(url_for('visualizar', id=dia.ocorrencia_id))
     
-    return render_template('editar_dia.html', dia=dia, ocorrencia=ocorrencia)
+    return render_template('editar_dia.html', dia=dia, ocorrencia=ocorrencia, numero_dia=numero_dia, nome_dia=nome_dia)
 
 @app.route('/excluir_dia/<int:id>')
 def excluir_dia(id):

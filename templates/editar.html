@@ -19,26 +19,13 @@
             <div class="section">
                 <h2>1. Dados Básicos da Ocorrência</h2>
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="tipo">Tipo de Ocorrência <span class="required">*</span></label>
-                        <select name="tipo" id="tipo" class="form-control" required>
-                            <option value="">Selecione...</option>
-                            <option value="Salvamento" {% if ocorrencia.tipo == 'Salvamento' %}selected{% endif %}>Salvamento</option>
-                            <option value="Busca" {% if ocorrencia.tipo == 'Busca' %}selected{% endif %}>Busca</option>
-                            <option value="Resgate" {% if ocorrencia.tipo == 'Resgate' %}selected{% endif %}>Resgate</option>
-                            <option value="Outros" {% if ocorrencia.tipo == 'Outros' %}selected{% endif %}>Outros</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="genero">Gênero <span class="required">*</span></label>
-                        <select name="genero" id="genero" class="form-control" required>
-                            <option value="">Selecione...</option>
-                            <option value="Masculino" {% if ocorrencia.genero == 'Masculino' %}selected{% endif %}>Masculino</option>
-                            <option value="Feminino" {% if ocorrencia.genero == 'Feminino' %}selected{% endif %}>Feminino</option>
-                            <option value="Não informado" {% if ocorrencia.genero == 'Não informado' %}selected{% endif %}>Não informado</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label for="tipo">Tipo de Ocorrência <span class="required">*</span></label>
+                    <select name="tipo" id="tipo" class="form-control" required>
+                        <option value="">Selecione...</option>
+                        <option value="Busca Terrestre" {% if ocorrencia.tipo == 'Busca Terrestre' %}selected{% endif %}>Busca Terrestre</option>
+                        <option value="Busca Marítima" {% if ocorrencia.tipo == 'Busca Marítima' %}selected{% endif %}>Busca Marítima</option>
+                    </select>
                 </div>
 
                 <div class="form-row">
@@ -53,7 +40,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="link">Link de Referência</label>
+                    <label for="link">Link com Tracks do Google Earth</label>
                     <input type="url" name="link" id="link" class="form-control" value="{{ ocorrencia.link or '' }}" placeholder="https://...">
                 </div>
             </div>
@@ -101,8 +88,8 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="sexo">Sexo</label>
-                        <select name="sexo" id="sexo" class="form-control">
+                        <label for="sexo">Sexo <span class="required">*</span></label>
+                        <select name="sexo" id="sexo" class="form-control" required>
                             <option value="">Selecione...</option>
                             <option value="Masculino" {% if ocorrencia.sexo == 'Masculino' %}selected{% endif %}>Masculino</option>
                             <option value="Feminino" {% if ocorrencia.sexo == 'Feminino' %}selected{% endif %}>Feminino</option>
@@ -169,12 +156,10 @@
                     <label for="tipo_terreno_agua">Tipo de Terreno/Água</label>
                     <select name="tipo_terreno_agua" id="tipo_terreno_agua" class="form-control">
                         <option value="">Selecione...</option>
+                        <option value="Terrestre" {% if ocorrencia.tipo_terreno_agua == 'Terrestre' %}selected{% endif %}>Terrestre</option>
                         <option value="Mar" {% if ocorrencia.tipo_terreno_agua == 'Mar' %}selected{% endif %}>Mar</option>
                         <option value="Rio" {% if ocorrencia.tipo_terreno_agua == 'Rio' %}selected{% endif %}>Rio</option>
                         <option value="Lago" {% if ocorrencia.tipo_terreno_agua == 'Lago' %}selected{% endif %}>Lago</option>
-                        <option value="Piscina" {% if ocorrencia.tipo_terreno_agua == 'Piscina' %}selected{% endif %}>Piscina</option>
-                        <option value="Terreno" {% if ocorrencia.tipo_terreno_agua == 'Terreno' %}selected{% endif %}>Terreno</option>
-                        <option value="Outros" {% if ocorrencia.tipo_terreno_agua == 'Outros' %}selected{% endif %}>Outros</option>
                     </select>
                 </div>
 
@@ -312,4 +297,29 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoOcorrencia = document.getElementById('tipo');
+    const tipoTerreno = document.getElementById('tipo_terreno_agua');
+    
+    // Função para atualizar o tipo de terreno
+    function atualizarTipoTerreno() {
+        if (tipoOcorrencia.value === 'Busca Terrestre') {
+            tipoTerreno.value = 'Terrestre';
+            tipoTerreno.disabled = true;
+        } else if (tipoOcorrencia.value === 'Busca Marítima') {
+            tipoTerreno.disabled = false;
+        } else {
+            tipoTerreno.disabled = false;
+        }
+    }
+    
+    // Aplicar na carga inicial
+    atualizarTipoTerreno();
+    
+    // Aplicar quando o tipo de ocorrência mudar
+    tipoOcorrencia.addEventListener('change', atualizarTipoTerreno);
+});
+</script>
 {% endblock %}

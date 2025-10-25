@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h1>Editar Dia de Busca</h1>
+            <h1>Editar {{ nome_dia|title }} Dia de Busca</h1>
             <div>
                 <a href="{{ url_for('visualizar', id=ocorrencia.id) }}" class="btn btn-secondary">Voltar</a>
             </div>
@@ -63,6 +63,15 @@
             <div class="form-group">
                 <label for="historico">Histórico</label>
                 <textarea name="historico" id="historico" rows="5" class="form-control">{{ dia.historico }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="status_vitima">Status da Vítima <span class="required">*</span></label>
+                <select name="status_vitima" id="status_vitima" class="form-control" required>
+                    <option value="">Selecione...</option>
+                    <option value="Localizada" {% if dia.status_vitima == 'Localizada' %}selected{% endif %}>Localizada</option>
+                    <option value="Não localizada" {% if dia.status_vitima == 'Não localizada' %}selected{% endif %}>Não localizada</option>
+                </select>
             </div>
             
             <!-- Imagens existentes -->
