@@ -104,10 +104,20 @@ class Ocorrencia(db.Model):
     img_raio_busca = db.Column(db.String(255))
     img_tab_mare = db.Column(db.String(255))
     img_prev_temp_onda = db.Column(db.String(255))
+    
+    # flags para indicar se as imagens devem ser utilizadas
+    usa_img_condic_metereologica = db.Column(db.Boolean, default=True)
+    usa_img_local = db.Column(db.Boolean, default=True)
+    usa_img_upv = db.Column(db.Boolean, default=True)
+    usa_img_satelite_upv = db.Column(db.Boolean, default=True)
+    usa_img_raio_busca = db.Column(db.Boolean, default=True)
+    usa_img_tab_mare = db.Column(db.Boolean, default=True)
+    usa_img_prev_temp_onda = db.Column(db.Boolean, default=True)
 
 class DiaBusca(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ocorrencia_id = db.Column(db.Integer, db.ForeignKey('ocorrencia.id'))
+    tipo_busca = db.Column(db.String(20))  # 'terrestre' ou 'aquatica'
     data = db.Column(db.String(50))
     hora_ini = db.Column(db.String(20))
     hora_fim = db.Column(db.String(20))
@@ -301,21 +311,31 @@ def nova():
         o.condicoes_do_tipo_terreno = request.form.get('condicoes_do_tipo_terreno', '')
         o.condicoes_climaticas = request.form.get('condicoes_climaticas', '')
         
-        # Processar imagens
+        # Processar imagens e flags de uso
         campos_imagem = [
-            'img_condic_metereologica', 'img_local', 'img_upv', 'img_satelite_upv',
-            'img_raio_busca', 'img_tab_mare', 'img_prev_temp_onda'
+            ('img_condic_metereologica', 'usa_img_condic_metereologica'),
+            ('img_local', 'usa_img_local'),
+            ('img_upv', 'usa_img_upv'),
+            ('img_satelite_upv', 'usa_img_satelite_upv'),
+            ('img_raio_busca', 'usa_img_raio_busca'),
+            ('img_tab_mare', 'usa_img_tab_mare'),
+            ('img_prev_temp_onda', 'usa_img_prev_temp_onda')
         ]
         
-        for campo in campos_imagem:
-            if campo in request.files:
-                f = request.files[campo]
+        for campo_img, campo_flag in campos_imagem:
+            # Define o flag de uso (padrão True se não especificado)
+            use_image = request.form.get(campo_flag, 'on') == 'on'
+            setattr(o, campo_flag, use_image)
+            
+            # Processa o upload da imagem
+            if campo_img in request.files:
+                f = request.files[campo_img]
                 if f and f.filename:
                     filename = secure_filename(f.filename)
                     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     f.save(path)
-                    setattr(o, campo, path)
-                    print(f"[upload] Salvo '{campo}' em {os.path.abspath(path)}")
+                    setattr(o, campo_img, path)
+                    print(f"[upload] Salvo '{campo_img}' em {os.path.abspath(path)}")
         
         db.session.add(o)
         db.session.commit()
@@ -345,8 +365,18 @@ def novo_dia(id):
             flash('Limite máximo de 10 dias de busca atingido!', 'error')
             return redirect(url_for('visualizar', id=id))
         
+        # Verifica se está vindo o tipo de busca (primeira etapa de seleção)
+        if 'tipo_busca' in request.form and 'data' not in request.form:
+            # Primeira requisição - redireciona para o formulário apropriado
+            tipo_busca = request.form.get('tipo_busca')
+            proximo_numero = get_proximo_numero_dia(id)
+            nome_dia = get_nome_dia(proximo_numero)
+            return render_template('form_dia.html', id=id, tipo_busca=tipo_busca, proximo_numero=proximo_numero, nome_dia=nome_dia)
+        
+        # Segunda requisição - salvar os dados
         d = DiaBusca()
         d.ocorrencia_id = id
+        d.tipo_busca = request.form.get('tipo_busca', 'aquatica')  # default aquatica para compatibilidade
         d.data = request.form.get('data','')
         d.hora_ini = request.form.get('hora_ini','')
         d.hora_fim = request.form.get('hora_fim','')
@@ -381,9 +411,10 @@ def novo_dia(id):
         flash('Limite máximo de 10 dias de busca atingido!', 'error')
         return redirect(url_for('visualizar', id=id))
     
+    # Mostra a tela de seleção
     proximo_numero = get_proximo_numero_dia(id)
     nome_dia = get_nome_dia(proximo_numero)
-    return render_template('form_dia.html', id=id, proximo_numero=proximo_numero, nome_dia=nome_dia)
+    return render_template('selecionar_tipo_dia.html', ocorrencia_id=id, proximo_numero=proximo_numero, nome_dia=nome_dia)
 
 @app.route('/ocorrencia/<int:id>/finalizar', methods=['GET','POST'])
 def finalizar(id):
@@ -448,26 +479,42 @@ def gerar(id):
             'substituir pelo sexo fornecido pelo usuario': oc.sexo,
             'substituir pela idade fornecida pelo usuario': oc.idade,
         }
-        image_phrase_map = {
-            'inserir imagem condicoes meteorologicas fornecida pelo usuario': oc.img_condic_metereologica,
-            'inserir imagem local fornecida pelo usuario': oc.img_local,
-            'inserir imagem upv fornecida pelo usuario': oc.img_upv,
-            'inserir imagem satelite upv fornecida pelo usuario': oc.img_satelite_upv,
-            'inserir imagem raio de busca fornecida pelo usuario': oc.img_raio_busca,
-            'inserir imagem tábua de maré fornecida pelo usuario': oc.img_tab_mare,
-            'inserir imagem previsão de temperatura e ondas fornecida pelo usuario': oc.img_prev_temp_onda,
-        }
+        # Cria mapa de imagens respeitando os flags de uso
+        image_phrase_map = {}
+        image_mapping = [
+            ('inserir imagem condicoes meteorologicas fornecida pelo usuario', oc.img_condic_metereologica, oc.usa_img_condic_metereologica),
+            ('inserir imagem local fornecida pelo usuario', oc.img_local, oc.usa_img_local),
+            ('inserir imagem upv fornecida pelo usuario', oc.img_upv, oc.usa_img_upv),
+            ('inserir imagem satelite upv fornecida pelo usuario', oc.img_satelite_upv, oc.usa_img_satelite_upv),
+            ('inserir imagem raio de busca fornecida pelo usuario', oc.img_raio_busca, oc.usa_img_raio_busca),
+            ('inserir imagem tábua de maré fornecida pelo usuario', oc.img_tab_mare, oc.usa_img_tab_mare),
+            ('inserir imagem previsão de temperatura e ondas fornecida pelo usuario', oc.img_prev_temp_onda, oc.usa_img_prev_temp_onda),
+        ]
+        
+        for phrase, image_path, use_image in image_mapping:
+            if use_image and image_path:
+                image_phrase_map[phrase] = image_path
+        
         replace_phrase_map(base_doc, phrase_map, image_phrase_map)
     else:
         base_doc = Document()
 
     # 2) Dias de busca
-    dia_tpl_path = 'modelo_buscas_por_dias.docx'
-    if os.path.exists(dia_tpl_path) and dias:
+    # Seleciona o template apropriado baseado no tipo de busca
+    if dias:
         for i, dia in enumerate(dias, 1):
-            ddoc = Document(dia_tpl_path)
-            # Anexa o template do dia ao documento final
-            append_document(base_doc, ddoc)
+            # Determina qual template usar baseado no tipo de busca
+            tipo_busca = getattr(dia, 'tipo_busca', 'aquatica')  # default aquatica para compatibilidade
+            if tipo_busca == 'terrestre':
+                dia_tpl_path = 'modelo_buscas_terrestre_por_dias.docx'
+            else:
+                dia_tpl_path = 'modelo_buscas_aquaticas_por_dias.docx'
+            
+            if os.path.exists(dia_tpl_path):
+                ddoc = Document(dia_tpl_path)
+                # Anexa o template do dia ao documento final
+                append_document(base_doc, ddoc)
+            
             # Obter nome do dia
             nome_dia = get_nome_dia(i)
             # Substituições direto no base_doc
@@ -588,21 +635,31 @@ def editar(id):
         ocorrencia.condicoes_do_tipo_terreno = request.form.get('condicoes_do_tipo_terreno', '')
         ocorrencia.condicoes_climaticas = request.form.get('condicoes_climaticas', '')
         
-        # Processar imagens (apenas se novas imagens foram enviadas)
+        # Processar flags de uso de imagens e upload (apenas se novas imagens foram enviadas)
         campos_imagem = [
-            'img_condic_metereologica', 'img_local', 'img_upv', 'img_satelite_upv',
-            'img_raio_busca', 'img_tab_mare', 'img_prev_temp_onda'
+            ('img_condic_metereologica', 'usa_img_condic_metereologica'),
+            ('img_local', 'usa_img_local'),
+            ('img_upv', 'usa_img_upv'),
+            ('img_satelite_upv', 'usa_img_satelite_upv'),
+            ('img_raio_busca', 'usa_img_raio_busca'),
+            ('img_tab_mare', 'usa_img_tab_mare'),
+            ('img_prev_temp_onda', 'usa_img_prev_temp_onda')
         ]
         
-        for campo in campos_imagem:
-            if campo in request.files:
-                f = request.files[campo]
+        for campo_img, campo_flag in campos_imagem:
+            # Atualiza o flag de uso
+            use_image = request.form.get(campo_flag, 'on') == 'on'
+            setattr(ocorrencia, campo_flag, use_image)
+            
+            # Processa novo upload se houver
+            if campo_img in request.files:
+                f = request.files[campo_img]
                 if f and f.filename:
                     filename = secure_filename(f.filename)
                     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     f.save(path)
-                    setattr(ocorrencia, campo, path)
-                    print(f"[upload] Atualizado '{campo}' em {os.path.abspath(path)}")
+                    setattr(ocorrencia, campo_img, path)
+                    print(f"[upload] Atualizado '{campo_img}' em {os.path.abspath(path)}")
         
         db.session.commit()
         flash('Ocorrência atualizada com sucesso!', 'success')

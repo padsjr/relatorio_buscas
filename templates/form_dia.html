@@ -6,12 +6,13 @@
 <div class="card">
     <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
-            <h1>{{ nome_dia|title }} Dia de Busca</h1>
+            <h1>{{ nome_dia|title }} Dia de Busca - {{ tipo_busca|title }}</h1>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Voltar</a>
         </div>
     </div>
     <div class="card-body">
         <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="tipo_busca" value="{{ tipo_busca }}">
             <div class="form-row">
                 <div class="form-group">
                     <label for="data">Data <span class="required">*</span></label>
@@ -72,6 +73,7 @@
                 </select>
             </div>
             
+            {% if tipo_busca == 'aquatica' %}
             <div class="form-group">
                 <div class="file-input">
                     <label for="img_tab_mare">Imagem Tábua de Maré</label>
@@ -92,6 +94,15 @@
                     <input name="img_traj_buscas" id="img_traj_buscas" type="file" accept="image/*">
                 </div>
             </div>
+            {% else %}
+            {# Imagens para busca terrestre - podem ser adicionadas no futuro #}
+            <div class="form-group">
+                <div class="file-input">
+                    <label for="img_traj_buscas">Imagem Trajetos/Buscas</label>
+                    <input name="img_traj_buscas" id="img_traj_buscas" type="file" accept="image/*">
+                </div>
+            </div>
+            {% endif %}
             
             <div class="text-center">
                 <button type="submit" class="btn btn-success">Salvar</button>

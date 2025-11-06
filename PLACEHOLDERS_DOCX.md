@@ -12,6 +12,11 @@
 - `{{complemento}}` - Complemento do local
 - `{{coordenada}}` - Coordenadas do local
 
+### Seleção de Tipo de Busca
+O sistema agora permite selecionar entre **Busca Terrestre** e **Busca Aquática** ao adicionar um novo dia de busca:
+- **Busca Terrestre**: Usa o template `modelo_buscas_terrestre_por_dias.docx`
+- **Busca Aquática**: Usa o template `modelo_buscas_aquaticas_por_dias.docx`
+
 ### Dados da Vítima
 - `{{nome_vitima}}` - Nome da vítima
 - `{{cpf}}` - CPF da vítima
@@ -46,6 +51,7 @@
 - `{{dia_recursos}}` - Recursos utilizados
 - `{{dia_historico}}` - Histórico do dia
 - `{{dia_status_vitima}}` - Status da vítima (Localizada/Não localizada)
+- `{{dia_tipo_busca}}` - Tipo de busca (terrestre ou aquatica)
 
 ### Imagens
 - `{{img_tab_mare_dia}}` - Imagem da tábua de maré do dia
@@ -127,3 +133,11 @@ Endereço: Não informado
 5. **Imagens**: As imagens são inseridas automaticamente nos locais marcados com os placeholders de imagem.
 
 6. **Valores Vazios**: Campos não preenchidos pelo usuário são automaticamente substituídos por "Não informado" nos relatórios gerados.
+
+7. **Templates Diferenciados**: O sistema agora usa templates diferentes para buscas terrestres e aquáticas:
+   - Buscas Terrestres: `modelo_buscas_terrestre_por_dias.docx`
+   - Buscas Aquáticas: `modelo_buscas_aquaticas_por_dias.docx`
+
+8. **Imagens Opcionais**: Cada imagem na introdução possui um checkbox para indicar se deve ser usada no relatório. Imagens não selecionadas não serão incluídas.
+
+9. **Compatibilidade**: O campo `tipo_busca` foi adicionado ao modelo DiaBusca. Para ocorrências antigas, o padrão será 'aquatica'.

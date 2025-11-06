@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Selecionar Tipo de Busca{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1>Selecionar Tipo de Busca</h1>
+            <a href="{{ url_for('visualizar', id=ocorrencia_id) }}" class="btn btn-secondary">Voltar</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <p class="lead">Qual o tipo de busca para o {{ nome_dia|title }} dia?</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <form method="POST" action="{{ url_for('novo_dia', id=ocorrencia_id) }}">
+                    <input type="hidden" name="tipo_busca" value="terrestre">
+                    <div class="card h-100" style="cursor: pointer; transition: transform 0.2s;">
+                        <div class="card-body text-center">
+                            <div style="font-size: 4rem; margin-bottom: 20px;">🏃</div>
+                            <h3>Busca Terrestre</h3>
+                            <p class="text-muted">Terrenos, montanhas, florestas, áreas urbanas</p>
+                            <button type="submit" class="btn btn-primary mt-3">Selecionar</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <form method="POST" action="{{ url_for('novo_dia', id=ocorrencia_id) }}">
+                    <input type="hidden" name="tipo_busca" value="aquatica">
+                    <div class="card h-100" style="cursor: pointer; transition: transform 0.2s;">
+                        <div class="card-body text-center">
+                            <div style="font-size: 4rem; margin-bottom: 20px;">🌊</div>
+                            <h3>Busca Aquática</h3>
+                            <p class="text-muted">Mar, rios, lagos e outros corpos d'água</p>
+                            <button type="submit" class="btn btn-primary mt-3">Selecionar</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
