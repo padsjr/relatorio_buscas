@@ -165,3 +165,4 @@ Thumbs.db
 
 # Relatórios gerados
 relatorio_*.docx
+static/temp/

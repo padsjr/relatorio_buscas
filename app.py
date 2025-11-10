@@ -472,148 +472,208 @@ def finalizar(id):
 
 @app.route('/gerar/<int:id>')
 def gerar(id):
-    oc = Ocorrencia.query.get(id)
-    dias = DiaBusca.query.filter_by(ocorrencia_id=id).all()
-    rf = RelatorioFinal.query.filter_by(ocorrencia_id=id).first()
-
-    # 1) Introdução
-    intro_path = 'modelo_introducao_buscas.docx'
-    if os.path.exists(intro_path):
-        # Inicia o documento final a partir do modelo de introdução para preservar cabeçalho/rodapé
-        base_doc = Document(intro_path)
-        # Substituições diretamente no documento base
-        mapping = {k: v for k, v in oc.__dict__.items() if k != '_sa_instance_state'}
-        image_keys = [
-            'img_condic_metereologica','img_local','img_upv','img_satelite_upv',
-            'img_raio_busca','img_tab_mare','img_prev_temp_onda'
-        ]
-        replace_placeholders(base_doc, mapping, image_keys)
-        phrase_map = {
-            'substituir pelo tipo fornecido pelo usuario': oc.tipo,
-            'substituir pelo data/hora do fato fornecido pelo usuario': oc.data_fato,
-            'substituir pelo data/hora de acionamento fornecido pelo usuario': oc.data_acionamento,
-            'substituir pelo link fornecido pelo usuario': oc.link,
-            'substituir pelo endereço do local fornecido pelo usuario': oc.endereco,
-            'substituir pelo cidade do local fornecido pelo usuario': oc.cidade,
-            'substituir pelo complemento do local fornecido pelo usuario': oc.complemento,
-            'substituir pela coordenada do local fornecido pelo usuario': oc.coordenada,
-            'substituir pelo nome da vítima fornecido pelo usuario': oc.nome_vitima,
-            'substituir pelo cpf fornecido pelo usuario': oc.cpf,
-            'substituir pelo sexo fornecido pelo usuario': oc.sexo,
-            'substituir pela idade fornecida pelo usuario': oc.idade,
-        }
-        # Cria mapa de imagens respeitando os flags de uso
-        image_phrase_map = {}
-        image_mapping = [
-            ('inserir imagem condicoes meteorologicas fornecida pelo usuario', oc.img_condic_metereologica, oc.usa_img_condic_metereologica),
-            ('inserir imagem local fornecida pelo usuario', oc.img_local, oc.usa_img_local),
-            ('inserir imagem upv fornecida pelo usuario', oc.img_upv, oc.usa_img_upv),
-            ('inserir imagem satelite upv fornecida pelo usuario', oc.img_satelite_upv, oc.usa_img_satelite_upv),
-            ('inserir imagem raio de busca fornecida pelo usuario', oc.img_raio_busca, oc.usa_img_raio_busca),
-            ('inserir imagem tábua de maré fornecida pelo usuario', oc.img_tab_mare, oc.usa_img_tab_mare),
-            ('inserir imagem previsão de temperatura e ondas fornecida pelo usuario', oc.img_prev_temp_onda, oc.usa_img_prev_temp_onda),
-        ]
+    try:
+        oc = Ocorrencia.query.get(id)
+        if not oc:
+            flash('Ocorrência não encontrada!', 'error')
+            return redirect(url_for('index'))
         
-        for phrase, image_path, use_image in image_mapping:
-            if use_image and image_path:
-                image_phrase_map[phrase] = image_path
-        
-        replace_phrase_map(base_doc, phrase_map, image_phrase_map)
-    else:
-        base_doc = Document()
+        dias = DiaBusca.query.filter_by(ocorrencia_id=id).all()
+        rf = RelatorioFinal.query.filter_by(ocorrencia_id=id).first()
 
-    # 2) Dias de busca
-    # Seleciona o template apropriado baseado no tipo de busca
-    if dias:
-        for i, dia in enumerate(dias, 1):
-            # Determina qual template usar baseado no tipo de busca
-            tipo_busca = getattr(dia, 'tipo_busca', 'aquatica')  # default aquatica para compatibilidade
-            if tipo_busca == 'terrestre':
-                dia_tpl_path = 'modelo_buscas_terrestre_por_dias.docx'
-            else:
-                dia_tpl_path = 'modelo_buscas_aquaticas_por_dias.docx'
+        # Normaliza caminhos para absolutos baseados em app.root_path
+        def get_template_path(filename):
+            path = os.path.join(app.root_path, filename)
+            if not os.path.exists(path):
+                print(f"[gerar] Template não encontrado: {path}")
+            return path
+        
+        def normalize_image_path(image_path):
+            """Normaliza caminho de imagem para absoluto"""
+            if not image_path:
+                return None
+            if os.path.isabs(image_path):
+                return image_path if os.path.exists(image_path) else None
+            # Tenta caminho relativo ao root_path
+            abs_path = os.path.join(app.root_path, image_path)
+            if os.path.exists(abs_path):
+                return abs_path
+            # Tenta caminho relativo ao upload_folder
+            abs_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(image_path))
+            return abs_path if os.path.exists(abs_path) else None
+
+        # 1) Introdução
+        intro_path = get_template_path('modelo_introducao_buscas.docx')
+        if os.path.exists(intro_path):
+            # Inicia o documento final a partir do modelo de introdução para preservar cabeçalho/rodapé
+            base_doc = Document(intro_path)
+            # Substituições diretamente no documento base
+            mapping = {k: v for k, v in oc.__dict__.items() if k != '_sa_instance_state'}
+            # Normaliza caminhos de imagens
+            for img_key in ['img_condic_metereologica','img_local','img_upv','img_satelite_upv',
+                           'img_raio_busca','img_tab_mare','img_prev_temp_onda']:
+                if img_key in mapping:
+                    mapping[img_key] = normalize_image_path(mapping[img_key])
             
-            if os.path.exists(dia_tpl_path):
-                ddoc = Document(dia_tpl_path)
-                # Anexa o template do dia ao documento final
-                append_document(base_doc, ddoc)
-            
-            # Obter nome do dia
-            nome_dia = get_nome_dia(i)
-            # Substituições direto no base_doc
-            dmapping = {
-                **{k: v for k, v in oc.__dict__.items() if k != '_sa_instance_state'},
-                'dia_indice': i,
-                'dia_nome': nome_dia,
-                'dia_data': dia.data,
-                'dia_hora_inicio': dia.hora_ini,
-                'dia_hora_fim': dia.hora_fim,
-                'dia_numero_ocorrencia': dia.numero_ocorrencia,
-                'dia_condicoes': dia.condicoes,
-                'dia_temp_inicial': dia.temp_inicial,
-                'dia_temp_final': dia.temp_final,
-                'dia_guarnicao': dia.guarnicao,
-                'dia_recursos': dia.recursos,
-                'dia_historico': dia.historico,
-                'dia_status_vitima': dia.status_vitima,
-                'img_tab_mare_dia': dia.img_tab_mare,
-                'img_prev_temp_dia': dia.img_prev_temp,
-                'img_traj_buscas_dia': dia.img_traj_buscas,
-            }
-            image_keys = ['img_tab_mare_dia','img_prev_temp_dia','img_traj_buscas_dia']
-            replace_placeholders(base_doc, dmapping, image_keys)
+            image_keys = [
+                'img_condic_metereologica','img_local','img_upv','img_satelite_upv',
+                'img_raio_busca','img_tab_mare','img_prev_temp_onda'
+            ]
+            replace_placeholders(base_doc, mapping, image_keys)
             phrase_map = {
-                'substituir pelo nome do dia fornecido pelo usuario': nome_dia,
-                'substituir pela data do dia fornecido pelo usuario': dia.data,
-                'substituir pelo horario de inicio fornecido pelo usuario': dia.hora_ini,
-                'substituir pelo horario de fim fornecido pelo usuario': dia.hora_fim,
-                'substituir pelo numero da ocorrencia fornecido pelo usuario': dia.numero_ocorrencia,
-                'substituir pelas condicoes fornecidas pelo usuario': dia.condicoes,
-                'substituir pela temperatura inicial fornecida pelo usuario': dia.temp_inicial,
-                'substituir pela temperatura final fornecida pelo usuario': dia.temp_final,
-                'substituir pela guarnicao fornecida pelo usuario': dia.guarnicao,
-                'substituir pelos recursos fornecidos pelo usuario': dia.recursos,
-                'substituir pelo historico do dia fornecido pelo usuario': dia.historico,
-                'substituir pelo status da vitima fornecido pelo usuario': dia.status_vitima,
+                'substituir pelo tipo fornecido pelo usuario': oc.tipo,
+                'substituir pelo data/hora do fato fornecido pelo usuario': oc.data_fato,
+                'substituir pelo data/hora de acionamento fornecido pelo usuario': oc.data_acionamento,
+                'substituir pelo link fornecido pelo usuario': oc.link,
+                'substituir pelo endereço do local fornecido pelo usuario': oc.endereco,
+                'substituir pelo cidade do local fornecido pelo usuario': oc.cidade,
+                'substituir pelo complemento do local fornecido pelo usuario': oc.complemento,
+                'substituir pela coordenada do local fornecido pelo usuario': oc.coordenada,
+                'substituir pelo nome da vítima fornecido pelo usuario': oc.nome_vitima,
+                'substituir pelo cpf fornecido pelo usuario': oc.cpf,
+                'substituir pelo sexo fornecido pelo usuario': oc.sexo,
+                'substituir pela idade fornecida pelo usuario': oc.idade,
             }
-            image_phrase_map = {
-                'inserir imagem tábua de maré do dia fornecida pelo usuario': dia.img_tab_mare,
-                'inserir imagem de previsao do dia fornecida pelo usuario': dia.img_prev_temp,
-                'inserir imagem de trajetos das buscas fornecida pelo usuario': dia.img_traj_buscas,
+            # Cria mapa de imagens respeitando os flags de uso
+            image_phrase_map = {}
+            image_mapping = [
+                ('inserir imagem condicoes meteorologicas fornecida pelo usuario', oc.img_condic_metereologica, oc.usa_img_condic_metereologica),
+                ('inserir imagem local fornecida pelo usuario', oc.img_local, oc.usa_img_local),
+                ('inserir imagem upv fornecida pelo usuario', oc.img_upv, oc.usa_img_upv),
+                ('inserir imagem satelite upv fornecida pelo usuario', oc.img_satelite_upv, oc.usa_img_satelite_upv),
+                ('inserir imagem raio de busca fornecida pelo usuario', oc.img_raio_busca, oc.usa_img_raio_busca),
+                ('inserir imagem tábua de maré fornecida pelo usuario', oc.img_tab_mare, oc.usa_img_tab_mare),
+                ('inserir imagem previsão de temperatura e ondas fornecida pelo usuario', oc.img_prev_temp_onda, oc.usa_img_prev_temp_onda),
+            ]
+            
+            for phrase, image_path, use_image in image_mapping:
+                if use_image and image_path:
+                    normalized_path = normalize_image_path(image_path)
+                    if normalized_path:
+                        image_phrase_map[phrase] = normalized_path
+            
+            replace_phrase_map(base_doc, phrase_map, image_phrase_map)
+        else:
+            base_doc = Document()
+
+        # 2) Dias de busca
+        # Seleciona o template apropriado baseado no tipo de busca
+        if dias:
+            for i, dia in enumerate(dias, 1):
+                # Determina qual template usar baseado no tipo de busca
+                tipo_busca = getattr(dia, 'tipo_busca', 'aquatica')  # default aquatica para compatibilidade
+                if tipo_busca == 'terrestre':
+                    dia_tpl_path = get_template_path('modelo_buscas_terrestre_por_dias.docx')
+                else:
+                    dia_tpl_path = get_template_path('modelo_buscas_aquaticas_por_dias.docx')
+                
+                if os.path.exists(dia_tpl_path):
+                    ddoc = Document(dia_tpl_path)
+                    # Anexa o template do dia ao documento final
+                    append_document(base_doc, ddoc)
+                
+                # Obter nome do dia
+                nome_dia = get_nome_dia(i)
+                # Substituições direto no base_doc
+                dmapping = {
+                    **{k: v for k, v in oc.__dict__.items() if k != '_sa_instance_state'},
+                    'dia_indice': i,
+                    'dia_nome': nome_dia,
+                    'dia_data': dia.data,
+                    'dia_hora_inicio': dia.hora_ini,
+                    'dia_hora_fim': dia.hora_fim,
+                    'dia_numero_ocorrencia': dia.numero_ocorrencia,
+                    'dia_condicoes': dia.condicoes,
+                    'dia_temp_inicial': dia.temp_inicial,
+                    'dia_temp_final': dia.temp_final,
+                    'dia_guarnicao': dia.guarnicao,
+                    'dia_recursos': dia.recursos,
+                    'dia_historico': dia.historico,
+                    'dia_status_vitima': dia.status_vitima,
+                    'img_tab_mare_dia': normalize_image_path(dia.img_tab_mare),
+                    'img_prev_temp_dia': normalize_image_path(dia.img_prev_temp),
+                    'img_traj_buscas_dia': normalize_image_path(dia.img_traj_buscas),
+                }
+                image_keys = ['img_tab_mare_dia','img_prev_temp_dia','img_traj_buscas_dia']
+                replace_placeholders(base_doc, dmapping, image_keys)
+                phrase_map = {
+                    'substituir pelo nome do dia fornecido pelo usuario': nome_dia,
+                    'substituir pela data do dia fornecido pelo usuario': dia.data,
+                    'substituir pelo horario de inicio fornecido pelo usuario': dia.hora_ini,
+                    'substituir pelo horario de fim fornecido pelo usuario': dia.hora_fim,
+                    'substituir pelo numero da ocorrencia fornecido pelo usuario': dia.numero_ocorrencia,
+                    'substituir pelas condicoes fornecidas pelo usuario': dia.condicoes,
+                    'substituir pela temperatura inicial fornecida pelo usuario': dia.temp_inicial,
+                    'substituir pela temperatura final fornecida pelo usuario': dia.temp_final,
+                    'substituir pela guarnicao fornecida pelo usuario': dia.guarnicao,
+                    'substituir pelos recursos fornecidos pelo usuario': dia.recursos,
+                    'substituir pelo historico do dia fornecido pelo usuario': dia.historico,
+                    'substituir pelo status da vitima fornecido pelo usuario': dia.status_vitima,
+                }
+                image_phrase_map = {}
+                for phrase, img_path in [
+                    ('inserir imagem tábua de maré do dia fornecida pelo usuario', dia.img_tab_mare),
+                    ('inserir imagem de previsao do dia fornecida pelo usuario', dia.img_prev_temp),
+                    ('inserir imagem de trajetos das buscas fornecida pelo usuario', dia.img_traj_buscas),
+                ]:
+                    normalized = normalize_image_path(img_path)
+                    if normalized:
+                        image_phrase_map[phrase] = normalized
+                replace_phrase_map(base_doc, phrase_map, image_phrase_map)
+
+        # 3) Resultado final
+        final_tpl_path = get_template_path('modelo_resultado_final_buscas.docx')
+        if os.path.exists(final_tpl_path) and rf:
+            fdoc = Document(final_tpl_path)
+            append_document(base_doc, fdoc)
+            fmapping = {
+                **{k: v for k, v in oc.__dict__.items() if k != '_sa_instance_state'},
+                **{k: v for k, v in rf.__dict__.items() if k not in ['_sa_instance_state','id','ocorrencia_id']},
             }
+            # Normaliza caminhos de imagens do relatório final
+            for img_key in ['img_corpo','img_local_corpo']:
+                if img_key in fmapping:
+                    fmapping[img_key] = normalize_image_path(fmapping[img_key])
+            
+            image_keys = ['img_corpo','img_local_corpo']
+            replace_placeholders(base_doc, fmapping, image_keys)
+            phrase_map = {
+                'substituir pelo status da vitima fornecido pelo usuario': rf.status_vitima,
+                'substituir pelo estado biologico fornecido pelo usuario': rf.estado_biologico,
+                'substituir pela coordenada da vitima fornecida pelo usuario': rf.coordenada_vitima,
+                'substituir pela temperatura da agua fornecida pelo usuario': rf.temp_agua,
+                'substituir pelo estado do corpo fornecido pelo usuario': rf.estado_corpo,
+                'substituir pelo tempo total de buscas fornecido pelo usuario': rf.temp_total_buscas,
+                'substituir pelo efetivo total fornecido pelo usuario': rf.efetiv_total,
+                'substituir pelos recursos empregados fornecidos pelo usuario': rf.rec_empreg,
+                'substituir pelo relato final fornecido pelo usuario': rf.relato,
+            }
+            image_phrase_map = {}
+            for phrase, img_path in [
+                ('inserir imagem do corpo fornecida pelo usuario', rf.img_corpo),
+                ('inserir imagem do local do corpo fornecida pelo usuario', rf.img_local_corpo),
+            ]:
+                normalized = normalize_image_path(img_path)
+                if normalized:
+                    image_phrase_map[phrase] = normalized
             replace_phrase_map(base_doc, phrase_map, image_phrase_map)
 
-    # 3) Resultado final
-    final_tpl_path = 'modelo_resultado_final_buscas.docx'
-    if os.path.exists(final_tpl_path) and rf:
-        fdoc = Document(final_tpl_path)
-        append_document(base_doc, fdoc)
-        fmapping = {
-            **{k: v for k, v in oc.__dict__.items() if k != '_sa_instance_state'},
-            **{k: v for k, v in rf.__dict__.items() if k not in ['_sa_instance_state','id','ocorrencia_id']},
-        }
-        image_keys = ['img_corpo','img_local_corpo']
-        replace_placeholders(base_doc, fmapping, image_keys)
-        phrase_map = {
-            'substituir pelo status da vitima fornecido pelo usuario': rf.status_vitima,
-            'substituir pelo estado biologico fornecido pelo usuario': rf.estado_biologico,
-            'substituir pela coordenada da vitima fornecida pelo usuario': rf.coordenada_vitima,
-            'substituir pela temperatura da agua fornecida pelo usuario': rf.temp_agua,
-            'substituir pelo estado do corpo fornecido pelo usuario': rf.estado_corpo,
-            'substituir pelo tempo total de buscas fornecido pelo usuario': rf.temp_total_buscas,
-            'substituir pelo efetivo total fornecido pelo usuario': rf.efetiv_total,
-            'substituir pelos recursos empregados fornecidos pelo usuario': rf.rec_empreg,
-            'substituir pelo relato final fornecido pelo usuario': rf.relato,
-        }
-        image_phrase_map = {
-            'inserir imagem do corpo fornecida pelo usuario': rf.img_corpo,
-            'inserir imagem do local do corpo fornecida pelo usuario': rf.img_local_corpo,
-        }
-        replace_phrase_map(base_doc, phrase_map, image_phrase_map)
-
-    nome_docx = f'relatorio_{id}.docx'
-    base_doc.save(nome_docx)
-    return send_file(nome_docx, as_attachment=True, download_name=nome_docx)
+        # Salva o arquivo em um diretório temporário
+        output_dir = os.path.join(app.root_path, 'static', 'temp')
+        os.makedirs(output_dir, exist_ok=True)
+        nome_docx = f'relatorio_{id}.docx'
+        output_path = os.path.join(output_dir, nome_docx)
+        
+        print(f"[gerar] Salvando relatório em: {output_path}")
+        base_doc.save(output_path)
+        
+        return send_file(output_path, as_attachment=True, download_name=nome_docx)
+    
+    except Exception as e:
+        print(f"[gerar] Erro ao gerar relatório: {e}")
+        traceback.print_exc()
+        flash(f'Erro ao gerar relatório: {str(e)}', 'error')
+        return redirect(url_for('visualizar', id=id))
 
 @app.route('/visualizar/<int:id>')
 def visualizar(id):
