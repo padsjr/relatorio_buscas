@@ -8,7 +8,7 @@ class Config:
     DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     
     # Configurações do banco de dados
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///relatorios.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///instance/relatorios.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Configurações de upload

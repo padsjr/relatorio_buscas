@@ -7,23 +7,40 @@ from docx.shared import Inches
 from copy import deepcopy
 # from docx2pdf import convert  # Removido devido a problemas de COM
 
+from config import config as config_map
+
 app = Flask(__name__)
 
-# Configurações específicas para Linux
-if os.name == 'posix':  # Linux/Unix
-    app.config['UPLOAD_FOLDER'] = 'static/uploads'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/relatorios.db'
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sua_chave_secreta_aqui')
-    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-else:  # Windows
-    app.config['UPLOAD_FOLDER'] = 'static/uploads'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///relatorios.db'
-    app.config['SECRET_KEY'] = 'sua_chave_secreta_aqui'
+# Configuração baseada na variável de ambiente FLASK_CONFIG
+config_name = os.getenv('FLASK_CONFIG', 'production' if os.getenv('DATABASE_URL') else 'default')
+app_config = config_map.get(config_name, config_map['default'])
+app.config.from_object(app_config)
+
+# Permite sobreescrever o banco via DATABASE_URL (Render/Railway/Supabase)
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+
+# Normaliza caminhos relativos para absolutos
+upload_folder = app.config.get('UPLOAD_FOLDER', 'static/uploads')
+if not os.path.isabs(upload_folder):
+    upload_folder = os.path.join(app.root_path, upload_folder)
+    app.config['UPLOAD_FOLDER'] = upload_folder
+os.makedirs(upload_folder, exist_ok=True)
+
+db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+if db_uri.startswith('sqlite:///'):
+    sqlite_path = db_uri.replace('sqlite:///', '', 1)
+    if not os.path.isabs(sqlite_path):
+        sqlite_path = os.path.join(app.root_path, sqlite_path)
+        app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{sqlite_path}"
+    sqlite_dir = os.path.dirname(sqlite_path)
+    if sqlite_dir:
+        os.makedirs(sqlite_dir, exist_ok=True)
 
 db = SQLAlchemy(app)
-
-# Garante que a pasta de uploads exista
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Filtro para formatação de datas brasileiras
 @app.template_filter('data_br')
