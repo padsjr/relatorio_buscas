@@ -5,6 +5,11 @@ from flask_sqlalchemy import SQLAlchemy
 from docx import Document
 from docx.shared import Inches
 from copy import deepcopy
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 # from docx2pdf import convert  # Removido devido a problemas de COM
 
 from config import config as config_map
@@ -189,6 +194,31 @@ def get_value_or_default(value, default="Não informado"):
         return default
     return str(value)
 
+def optimize_image_for_docx(image_path, max_width=1200, max_height=1200):
+    """Otimiza imagem redimensionando se necessário para economizar memória"""
+    if not PIL_AVAILABLE or not image_path or not os.path.exists(image_path):
+        return image_path
+    
+    try:
+        with Image.open(image_path) as img:
+            # Verifica se precisa redimensionar
+            if img.width <= max_width and img.height <= max_height:
+                return image_path
+            
+            # Redimensiona mantendo proporção
+            img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+            
+            # Salva em arquivo temporário otimizado
+            temp_dir = os.path.join(app.root_path, 'static', 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            temp_path = os.path.join(temp_dir, f"opt_{os.path.basename(image_path)}")
+            img.save(temp_path, optimize=True, quality=85)
+            print(f"[imagem] Imagem otimizada: {image_path} -> {temp_path}")
+            return temp_path
+    except Exception as e:
+        print(f"[imagem] Erro ao otimizar {image_path}: {e}")
+        return image_path
+
 def _iter_block_items(doc):
     for p in doc.paragraphs:
         yield p
@@ -242,14 +272,15 @@ def replace_placeholders(doc: Document, mapping: dict, image_keys: list):
                         if not os.path.exists(abs_path):
                             print(f"[imagem] Arquivo não encontrado para chave '{k}': {abs_path}")
                             continue
+                        # Otimiza imagem antes de inserir
+                        optimized_path = optimize_image_for_docx(abs_path)
                         run = para.add_run()
-                        run.add_picture(abs_path, width=Inches(3))
-                        print(f"[imagem] Inserida imagem para chave '{k}': {abs_path}")
+                        run.add_picture(optimized_path, width=Inches(3))
+                        print(f"[imagem] Inserida imagem para chave '{k}': {optimized_path}")
                     except Exception as e:
                         print(f"[imagem] Falha ao inserir '{k}' em {path}: {e}")
                         traceback.print_exc()
-                else:
-                    print(f"[imagem] Caminho ausente/ vazio no mapping para chave '{k}'. Mapping[{k}]={path}")
+                # Não logar se path for None - é esperado para campos opcionais
 
 def append_document(target: Document, source: Document):
     for element in list(source.element.body):
@@ -285,13 +316,14 @@ def replace_phrase_map(doc: Document, phrase_map: dict, image_phrase_map: dict):
                         if not os.path.exists(abs_path):
                             print(f"[imagem] Arquivo não encontrado para frase '{phrase}': {abs_path}")
                             continue
-                        para.add_run().add_picture(abs_path, width=Inches(3))
-                        print(f"[imagem] Inserida imagem para frase '{phrase}': {abs_path}")
+                        # Otimiza imagem antes de inserir
+                        optimized_path = optimize_image_for_docx(abs_path)
+                        para.add_run().add_picture(optimized_path, width=Inches(3))
+                        print(f"[imagem] Inserida imagem para frase '{phrase}': {optimized_path}")
                     except Exception as e:
                         print(f"[imagem] Falha ao inserir para frase '{phrase}' em {path}: {e}")
                         traceback.print_exc()
-                else:
-                    print(f"[imagem] Caminho ausente/ vazio para frase '{phrase}'. Valor={path}")
+                # Não logar se path for None - é esperado para campos opcionais
 
 @app.route('/')
 def index():
