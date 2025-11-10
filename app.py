@@ -21,6 +21,12 @@ database_url = os.getenv('DATABASE_URL')
 if database_url:
     if database_url.startswith('postgres://'):
         database_url = database_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+    
+    # Garante que URLs do Supabase tenham sslmode=require
+    if 'supabase.co' in database_url and 'sslmode' not in database_url:
+        separator = '&' if '?' in database_url else '?'
+        database_url = f"{database_url}{separator}sslmode=require"
+    
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
 # Normaliza caminhos relativos para absolutos
