@@ -175,79 +175,86 @@
             <!-- IMAGENS -->
             <div class="section">
                 <h2>5. Imagens</h2>
-                <p class="text-muted small">Marque as imagens que serão utilizadas no relatório.</p>
+                <p class="text-muted small">Marque as imagens que serão utilizadas no relatório e faça o upload de cada uma.</p>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <div class="file-input">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <input type="checkbox" name="usa_img_condic_metereologica" id="usa_img_condic_metereologica" checked>
-                                <label for="usa_img_condic_metereologica" style="margin: 0;">Condições Meteorológicas</label>
-                            </div>
-                            <input type="file" name="img_condic_metereologica" id="img_condic_metereologica" accept="image/*">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input type="checkbox" name="usa_img_condic_metereologica" id="usa_img_condic_metereologica" checked>
+                            <label for="usa_img_condic_metereologica" style="margin: 0; font-weight: 600;">Condições Meteorológicas</label>
                         </div>
+                        <label for="img_condic_metereologica" class="file-upload-label">
+                            <span id="label_img_condic_metereologica">📷 Clique para selecionar a imagem</span>
+                        </label>
+                        <input type="file" name="img_condic_metereologica" id="img_condic_metereologica" accept="image/*" class="file-input-field">
                     </div>
                     <div class="form-group">
-                        <div class="file-input">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <input type="checkbox" name="usa_img_local" id="usa_img_local" checked>
-                                <label for="usa_img_local" style="margin: 0;">Imagem do Local</label>
-                            </div>
-                            <input type="file" name="img_local" id="img_local" accept="image/*">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input type="checkbox" name="usa_img_local" id="usa_img_local" checked>
+                            <label for="usa_img_local" style="margin: 0; font-weight: 600;">Imagem do Local</label>
                         </div>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <div class="file-input">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <input type="checkbox" name="usa_img_upv" id="usa_img_upv" checked>
-                                <label for="usa_img_upv" style="margin: 0;">Imagem do UPV</label>
-                            </div>
-                            <input type="file" name="img_upv" id="img_upv" accept="image/*">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="file-input">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <input type="checkbox" name="usa_img_satelite_upv" id="usa_img_satelite_upv" checked>
-                                <label for="usa_img_satelite_upv" style="margin: 0;">Imagem de Satélite UPV</label>
-                            </div>
-                            <input type="file" name="img_satelite_upv" id="img_satelite_upv" accept="image/*">
-                        </div>
+                        <label for="img_local" class="file-upload-label">
+                            <span id="label_img_local">📷 Clique para selecionar a imagem</span>
+                        </label>
+                        <input type="file" name="img_local" id="img_local" accept="image/*" class="file-input-field">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <div class="file-input">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <input type="checkbox" name="usa_img_raio_busca" id="usa_img_raio_busca" checked>
-                                <label for="usa_img_raio_busca" style="margin: 0;">Raio de Busca</label>
-                            </div>
-                            <input type="file" name="img_raio_busca" id="img_raio_busca" accept="image/*">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input type="checkbox" name="usa_img_upv" id="usa_img_upv" checked>
+                            <label for="usa_img_upv" style="margin: 0; font-weight: 600;">Imagem do UPV</label>
                         </div>
+                        <label for="img_upv" class="file-upload-label">
+                            <span id="label_img_upv">📷 Clique para selecionar a imagem</span>
+                        </label>
+                        <input type="file" name="img_upv" id="img_upv" accept="image/*" class="file-input-field">
                     </div>
                     <div class="form-group">
-                        <div class="file-input">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <input type="checkbox" name="usa_img_tab_mare" id="usa_img_tab_mare" checked>
-                                <label for="usa_img_tab_mare" style="margin: 0;">Tábua de Maré</label>
-                            </div>
-                            <input type="file" name="img_tab_mare" id="img_tab_mare" accept="image/*">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input type="checkbox" name="usa_img_satelite_upv" id="usa_img_satelite_upv" checked>
+                            <label for="usa_img_satelite_upv" style="margin: 0; font-weight: 600;">Imagem de Satélite UPV</label>
                         </div>
+                        <label for="img_satelite_upv" class="file-upload-label">
+                            <span id="label_img_satelite_upv">📷 Clique para selecionar a imagem</span>
+                        </label>
+                        <input type="file" name="img_satelite_upv" id="img_satelite_upv" accept="image/*" class="file-input-field">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input type="checkbox" name="usa_img_raio_busca" id="usa_img_raio_busca" checked>
+                            <label for="usa_img_raio_busca" style="margin: 0; font-weight: 600;">Raio de Busca</label>
+                        </div>
+                        <label for="img_raio_busca" class="file-upload-label">
+                            <span id="label_img_raio_busca">📷 Clique para selecionar a imagem</span>
+                        </label>
+                        <input type="file" name="img_raio_busca" id="img_raio_busca" accept="image/*" class="file-input-field">
+                    </div>
+                    <div class="form-group">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input type="checkbox" name="usa_img_tab_mare" id="usa_img_tab_mare" checked>
+                            <label for="usa_img_tab_mare" style="margin: 0; font-weight: 600;">Tábua de Maré</label>
+                        </div>
+                        <label for="img_tab_mare" class="file-upload-label">
+                            <span id="label_img_tab_mare">📷 Clique para selecionar a imagem</span>
+                        </label>
+                        <input type="file" name="img_tab_mare" id="img_tab_mare" accept="image/*" class="file-input-field">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <div class="file-input">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <input type="checkbox" name="usa_img_prev_temp_onda" id="usa_img_prev_temp_onda" checked>
-                            <label for="usa_img_prev_temp_onda" style="margin: 0;">Previsão de Temperatura e Ondas</label>
-                        </div>
-                        <input type="file" name="img_prev_temp_onda" id="img_prev_temp_onda" accept="image/*">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <input type="checkbox" name="usa_img_prev_temp_onda" id="usa_img_prev_temp_onda" checked>
+                        <label for="usa_img_prev_temp_onda" style="margin: 0; font-weight: 600;">Previsão de Temperatura e Ondas</label>
                     </div>
+                    <label for="img_prev_temp_onda" class="file-upload-label">
+                        <span id="label_img_prev_temp_onda">📷 Clique para selecionar a imagem</span>
+                    </label>
+                    <input type="file" name="img_prev_temp_onda" id="img_prev_temp_onda" accept="image/*" class="file-input-field">
                 </div>
             </div>
 
@@ -283,6 +290,44 @@
     </div>
 </div>
 
+<style>
+.file-upload-label {
+    display: block;
+    padding: 15px;
+    border: 2px dashed #007bff;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 10px;
+}
+
+.file-upload-label:hover {
+    background-color: #e7f3ff;
+    border-color: #0056b3;
+}
+
+.file-upload-label span {
+    color: #007bff;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.file-input-field {
+    display: none;
+}
+
+.file-upload-label.has-file {
+    background-color: #d4edda;
+    border-color: #28a745;
+}
+
+.file-upload-label.has-file span {
+    color: #155724;
+}
+</style>
+
 <script>
 let customImageIndex = 0;
 
@@ -301,6 +346,24 @@ document.addEventListener('DOMContentLoaded', function() {
             tipoTerreno.value = '';
             tipoTerreno.disabled = false;
         }
+    });
+
+    // Atualizar labels de upload quando arquivo for selecionado
+    const fileInputs = document.querySelectorAll('.file-input-field');
+    fileInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+            const label = document.querySelector(`label[for="${this.id}"]`);
+            const labelSpan = document.getElementById(`label_${this.id}`);
+            
+            if (e.target.files.length > 0) {
+                const fileName = e.target.files[0].name;
+                labelSpan.textContent = `✅ ${fileName}`;
+                label.classList.add('has-file');
+            } else {
+                labelSpan.textContent = '📷 Clique para selecionar a imagem';
+                label.classList.remove('has-file');
+            }
+        });
     });
 
     // Sistema de imagens customizadas
