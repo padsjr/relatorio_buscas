@@ -243,6 +243,28 @@
                     <div class="form-control">-</div>
                 {% endif %}
             </div>
+            
+            <!-- Imagens Customizadas -->
+            {% if imagens_customizadas %}
+            <div class="mt-4">
+                <h4>Imagens Adicionais (Customizadas)</h4>
+                <div class="form-row">
+                    {% for img_custom in imagens_customizadas %}
+                    <div class="form-group col-md-4">
+                        <label>{{ img_custom.titulo }}{% if not img_custom.usa_imagem %} <span class="text-muted">(não usada no relatório)</span>{% endif %}</label>
+                        {% if img_custom.caminho %}
+                            <div class="form-control">
+                                <img src="{{ url_for('static', filename='uploads/' + img_custom.caminho.split('/')[-1]) }}" 
+                                     alt="{{ img_custom.titulo }}" style="max-width: 200px; height: auto;">
+                            </div>
+                        {% else %}
+                            <div class="form-control">-</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Histórico da Ocorrência -->

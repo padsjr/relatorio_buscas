@@ -309,9 +309,64 @@
                 </div>
             </div>
 
+            <!-- IMAGENS CUSTOMIZADAS -->
+            <div class="section">
+                <h2>6. Imagens Adicionais (Customizadas)</h2>
+                <p class="text-muted small">Gerencie imagens com descrições personalizadas.</p>
+                
+                <!-- Imagens customizadas existentes -->
+                {% if imagens_customizadas %}
+                    {% for img_custom in imagens_customizadas %}
+                    <div class="custom-image-item mb-3 p-3 border rounded">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">Imagem: {{ img_custom.titulo }}</h6>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="custom_delete_{{ img_custom.id }}" id="custom_delete_{{ img_custom.id }}">
+                                <label class="form-check-label text-danger" for="custom_delete_{{ img_custom.id }}">Excluir</label>
+                            </div>
+                        </div>
+                        <div class="form-group mb-2">
+                            <label for="custom_titulo_existente_{{ img_custom.id }}">Título/Descrição</label>
+                            <input type="text" name="custom_titulo_existente_{{ img_custom.id }}" 
+                                   id="custom_titulo_existente_{{ img_custom.id }}" 
+                                   class="form-control" value="{{ img_custom.titulo }}" required>
+                        </div>
+                        <div class="form-group mb-2">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <input type="checkbox" name="custom_usa_existente_{{ img_custom.id }}" 
+                                       id="custom_usa_existente_{{ img_custom.id }}" 
+                                       {% if img_custom.usa_imagem %}checked{% endif %}>
+                                <label for="custom_usa_existente_{{ img_custom.id }}" style="margin: 0;">Usar esta imagem no relatório</label>
+                            </div>
+                            <label for="custom_imagem_existente_{{ img_custom.id }}">Alterar imagem (deixe em branco para manter a atual)</label>
+                            <input type="file" name="custom_imagem_existente_{{ img_custom.id }}" 
+                                   id="custom_imagem_existente_{{ img_custom.id }}" 
+                                   class="form-control" accept="image/*">
+                            {% if img_custom.caminho %}
+                                <div class="mt-2">
+                                    <small class="text-muted">Imagem atual:</small><br>
+                                    <img src="{{ url_for('static', filename='uploads/' + img_custom.caminho.split('/')[-1]) }}" 
+                                         alt="{{ img_custom.titulo }}" style="max-width: 150px; height: auto;">
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Container para novas imagens customizadas -->
+                <div id="custom-images-container">
+                    <!-- Novas imagens customizadas serão adicionadas aqui via JavaScript -->
+                </div>
+                
+                <button type="button" id="add-custom-image-btn" class="btn btn-outline-primary btn-sm mt-2">
+                    ➕ Adicionar Nova Imagem Customizada
+                </button>
+            </div>
+
             <!-- HISTÓRICO DA OCORRÊNCIA -->
             <div class="section">
-                <h2>6. Histórico da Ocorrência</h2>
+                <h2>7. Histórico da Ocorrência</h2>
                 
                 <div class="form-group">
                     <label for="historico_ocorrencia">Histórico Detalhado <span class="required">*</span></label>
@@ -328,6 +383,8 @@
 </div>
 
 <script>
+let customImageIndex = 0;
+
 document.addEventListener('DOMContentLoaded', function() {
     const tipoOcorrencia = document.getElementById('tipo');
     const tipoTerreno = document.getElementById('tipo_terreno_agua');
@@ -349,6 +406,50 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Aplicar quando o tipo de ocorrência mudar
     tipoOcorrencia.addEventListener('change', atualizarTipoTerreno);
+
+    // Sistema de imagens customizadas
+    const container = document.getElementById('custom-images-container');
+    const addBtn = document.getElementById('add-custom-image-btn');
+
+    function addCustomImageField() {
+        const index = customImageIndex++;
+        const div = document.createElement('div');
+        div.className = 'custom-image-item mb-3 p-3 border rounded';
+        div.setAttribute('data-index', index);
+        
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="mb-0">Nova Imagem Customizada #${index + 1}</h6>
+                <button type="button" class="btn btn-sm btn-danger remove-custom-image" data-index="${index}">
+                    🗑️ Remover
+                </button>
+            </div>
+            <div class="form-group mb-2">
+                <label for="custom_titulo_${index}">Título/Descrição da Imagem <span class="required">*</span></label>
+                <input type="text" name="custom_titulo_${index}" id="custom_titulo_${index}" 
+                       class="form-control" required placeholder="Ex: Mapa de correntes, Foto aérea, etc.">
+            </div>
+            <div class="form-group mb-2">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <input type="checkbox" name="custom_usa_${index}" id="custom_usa_${index}" checked>
+                    <label for="custom_usa_${index}" style="margin: 0;">Usar esta imagem no relatório</label>
+                </div>
+                <input type="file" name="custom_imagem_${index}" id="custom_imagem_${index}" 
+                       class="form-control" accept="image/*" required>
+            </div>
+        `;
+        
+        container.appendChild(div);
+        
+        // Adiciona evento de remoção
+        div.querySelector('.remove-custom-image').addEventListener('click', function() {
+            div.remove();
+        });
+    }
+
+    if (addBtn) {
+        addBtn.addEventListener('click', addCustomImageField);
+    }
 });
 </script>
 {% endblock %}

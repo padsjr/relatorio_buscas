@@ -166,6 +166,14 @@ class DiaBusca(db.Model):
     img_prev_temp = db.Column(db.String(255))
     img_traj_buscas = db.Column(db.String(255))
 
+class ImagemCustomizada(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ocorrencia_id = db.Column(db.Integer, db.ForeignKey('ocorrencia.id'), nullable=False)
+    titulo = db.Column(db.String(255), nullable=False)  # Descrição/título da imagem
+    caminho = db.Column(db.String(255), nullable=False)  # Caminho do arquivo
+    ordem = db.Column(db.Integer, default=0)  # Ordem de exibição
+    usa_imagem = db.Column(db.Boolean, default=True)  # Flag para usar ou não
+
 class RelatorioFinal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ocorrencia_id = db.Column(db.Integer, db.ForeignKey('ocorrencia.id'))
@@ -506,7 +514,46 @@ def nova():
                     print(f"[upload] Salvo '{campo_img}' em {os.path.abspath(path)}")
                     log_memory_usage(f"Após upload {campo_img}")
         
+        # Processar imagens customizadas
         db.session.add(o)
+        db.session.flush()  # Para obter o ID da ocorrência
+        
+        # Processa imagens customizadas (formato: custom_titulo_0, custom_imagem_0, custom_usa_0, etc.)
+        custom_index = 0
+        while True:
+            titulo_key = f'custom_titulo_{custom_index}'
+            imagem_key = f'custom_imagem_{custom_index}'
+            usa_key = f'custom_usa_{custom_index}'
+            
+            titulo = request.form.get(titulo_key, '').strip()
+            usa_imagem = request.form.get(usa_key, 'on') == 'on'
+            
+            # Se não tem título, não há mais imagens customizadas
+            if not titulo:
+                break
+            
+            # Verifica se há arquivo de imagem
+            if imagem_key in request.files:
+                f = request.files[imagem_key]
+                if f and f.filename:
+                    filename = secure_filename(f.filename)
+                    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    f.save(path)
+                    compressed_path = compress_image_on_upload(path)
+                    
+                    # Cria registro de imagem customizada
+                    img_custom = ImagemCustomizada(
+                        ocorrencia_id=o.id,
+                        titulo=titulo,
+                        caminho=compressed_path,
+                        ordem=custom_index,
+                        usa_imagem=usa_imagem
+                    )
+                    db.session.add(img_custom)
+                    print(f"[upload] Imagem customizada salva: '{titulo}' em {compressed_path}")
+            
+            custom_index += 1
+        
         db.session.commit()
         return redirect(url_for('index'))
     
@@ -706,6 +753,37 @@ def gerar(id):
                         image_phrase_map[phrase] = normalized_path
             
             replace_phrase_map(base_doc, phrase_map, image_phrase_map)
+            
+            # Adiciona imagens customizadas após as imagens padrão
+            imagens_customizadas = ImagemCustomizada.query.filter_by(
+                ocorrencia_id=id,
+                usa_imagem=True
+            ).order_by(ImagemCustomizada.ordem).all()
+            
+            if imagens_customizadas:
+                for img_custom in imagens_customizadas:
+                    normalized_path = normalize_image_path(img_custom.caminho)
+                    if normalized_path:
+                        # Adiciona um parágrafo com o título da imagem
+                        para_titulo = base_doc.add_paragraph()
+                        para_titulo.add_run(f"{img_custom.titulo}:").bold = True
+                        
+                        # Adiciona a imagem
+                        para_img = base_doc.add_paragraph()
+                        try:
+                            optimized_path = optimize_image_for_docx(normalized_path)
+                            para_img.add_run().add_picture(optimized_path, width=Inches(3))
+                            print(f"[imagem] Inserida imagem customizada '{img_custom.titulo}': {optimized_path}")
+                            # Remove arquivo temporário
+                            try:
+                                if optimized_path != normalized_path and os.path.exists(optimized_path):
+                                    os.remove(optimized_path)
+                            except:
+                                pass
+                            gc.collect()
+                        except Exception as e:
+                            print(f"[imagem] Falha ao inserir imagem customizada '{img_custom.titulo}': {e}")
+                            traceback.print_exc()
         else:
             base_doc = Document()
 
@@ -858,7 +936,8 @@ def visualizar(id):
     ocorrencia = Ocorrencia.query.get_or_404(id)
     dias_busca = DiaBusca.query.filter_by(ocorrencia_id=id).order_by(DiaBusca.data).all()
     relatorio_final = RelatorioFinal.query.filter_by(ocorrencia_id=id).first()
-    return render_template('visualizar.html', ocorrencia=ocorrencia, dias_busca=dias_busca, relatorio_final=relatorio_final)
+    imagens_customizadas = ImagemCustomizada.query.filter_by(ocorrencia_id=id).order_by(ImagemCustomizada.ordem).all()
+    return render_template('visualizar.html', ocorrencia=ocorrencia, dias_busca=dias_busca, relatorio_final=relatorio_final, imagens_customizadas=imagens_customizadas)
 
 @app.route('/editar/<int:id>', methods=['GET', 'POST'])
 def editar(id):
@@ -925,11 +1004,89 @@ def editar(id):
                     print(f"[upload] Atualizado '{campo_img}' em {os.path.abspath(path)}")
                     log_memory_usage(f"Após atualizar {campo_img}")
         
+        # Processar imagens customizadas (atualizar existentes e adicionar novas)
+        # Primeiro, remove imagens customizadas que foram marcadas para exclusão
+        imagens_existentes = ImagemCustomizada.query.filter_by(ocorrencia_id=id).all()
+        for img_existente in imagens_existentes:
+            delete_key = f'custom_delete_{img_existente.id}'
+            if request.form.get(delete_key) == 'on':
+                # Remove arquivo físico
+                if img_existente.caminho and os.path.exists(img_existente.caminho):
+                    try:
+                        os.remove(img_existente.caminho)
+                    except:
+                        pass
+                db.session.delete(img_existente)
+                continue
+            
+            # Atualiza título e flag de uso se fornecido
+            titulo_key = f'custom_titulo_existente_{img_existente.id}'
+            usa_key = f'custom_usa_existente_{img_existente.id}'
+            if titulo_key in request.form:
+                img_existente.titulo = request.form.get(titulo_key, '').strip()
+            if usa_key in request.form:
+                img_existente.usa_imagem = request.form.get(usa_key, 'off') == 'on'
+            
+            # Atualiza imagem se novo arquivo foi enviado
+            imagem_key = f'custom_imagem_existente_{img_existente.id}'
+            if imagem_key in request.files:
+                f = request.files[imagem_key]
+                if f and f.filename:
+                    # Remove arquivo antigo
+                    if img_existente.caminho and os.path.exists(img_existente.caminho):
+                        try:
+                            os.remove(img_existente.caminho)
+                        except:
+                            pass
+                    # Salva novo arquivo
+                    filename = secure_filename(f.filename)
+                    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    f.save(path)
+                    compressed_path = compress_image_on_upload(path)
+                    img_existente.caminho = compressed_path
+        
+        # Adiciona novas imagens customizadas
+        custom_index = 0
+        while True:
+            titulo_key = f'custom_titulo_{custom_index}'
+            imagem_key = f'custom_imagem_{custom_index}'
+            usa_key = f'custom_usa_{custom_index}'
+            
+            titulo = request.form.get(titulo_key, '').strip()
+            usa_imagem = request.form.get(usa_key, 'on') == 'on'
+            
+            if not titulo:
+                break
+            
+            if imagem_key in request.files:
+                f = request.files[imagem_key]
+                if f and f.filename:
+                    filename = secure_filename(f.filename)
+                    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    f.save(path)
+                    compressed_path = compress_image_on_upload(path)
+                    
+                    # Encontra a maior ordem atual
+                    from sqlalchemy import func
+                    max_ordem = db.session.query(func.max(ImagemCustomizada.ordem)).filter_by(ocorrencia_id=id).scalar() or -1
+                    
+                    img_custom = ImagemCustomizada(
+                        ocorrencia_id=id,
+                        titulo=titulo,
+                        caminho=compressed_path,
+                        ordem=max_ordem + 1,
+                        usa_imagem=usa_imagem
+                    )
+                    db.session.add(img_custom)
+            
+            custom_index += 1
+        
         db.session.commit()
         flash('Ocorrência atualizada com sucesso!', 'success')
         return redirect(url_for('visualizar', id=id))
     
-    return render_template('editar.html', ocorrencia=ocorrencia)
+    imagens_customizadas = ImagemCustomizada.query.filter_by(ocorrencia_id=id).order_by(ImagemCustomizada.ordem).all()
+    return render_template('editar.html', ocorrencia=ocorrencia, imagens_customizadas=imagens_customizadas)
 
 @app.route('/editar_dia/<int:id>', methods=['GET', 'POST'])
 def editar_dia(id):
@@ -1021,6 +1178,17 @@ def excluir(id):
                 print(f"[delete] Imagem removida: {caminho_imagem}")
             except Exception as e:
                 print(f"[delete] Erro ao remover imagem {caminho_imagem}: {e}")
+    
+    # Excluir imagens customizadas associadas
+    imagens_customizadas = ImagemCustomizada.query.filter_by(ocorrencia_id=id).all()
+    for img_custom in imagens_customizadas:
+        if img_custom.caminho and os.path.exists(img_custom.caminho):
+            try:
+                os.remove(img_custom.caminho)
+                print(f"[delete] Imagem customizada removida: {img_custom.caminho}")
+            except Exception as e:
+                print(f"[delete] Erro ao remover imagem customizada {img_custom.caminho}: {e}")
+        db.session.delete(img_custom)
     
     # Excluir dias de busca associados
     dias_busca = DiaBusca.query.filter_by(ocorrencia_id=id).all()

@@ -251,9 +251,23 @@
                 </div>
             </div>
 
+            <!-- IMAGENS CUSTOMIZADAS -->
+            <div class="section">
+                <h2>6. Imagens Adicionais (Customizadas)</h2>
+                <p class="text-muted small">Adicione imagens com descrições personalizadas que não estão nas opções acima.</p>
+                
+                <div id="custom-images-container">
+                    <!-- Imagens customizadas serão adicionadas aqui via JavaScript -->
+                </div>
+                
+                <button type="button" id="add-custom-image-btn" class="btn btn-outline-primary btn-sm mt-2">
+                    ➕ Adicionar Imagem Customizada
+                </button>
+            </div>
+
             <!-- HISTÓRICO DA OCORRÊNCIA -->
             <div class="section">
-                <h2>6. Histórico da Ocorrência</h2>
+                <h2>7. Histórico da Ocorrência</h2>
                 
                 <div class="form-group">
                     <label for="historico_ocorrencia">Histórico Detalhado <span class="required">*</span></label>
@@ -270,6 +284,8 @@
 </div>
 
 <script>
+let customImageIndex = 0;
+
 document.addEventListener('DOMContentLoaded', function() {
     const tipoOcorrencia = document.getElementById('tipo');
     const tipoTerreno = document.getElementById('tipo_terreno_agua');
@@ -286,6 +302,48 @@ document.addEventListener('DOMContentLoaded', function() {
             tipoTerreno.disabled = false;
         }
     });
+
+    // Sistema de imagens customizadas
+    const container = document.getElementById('custom-images-container');
+    const addBtn = document.getElementById('add-custom-image-btn');
+
+    function addCustomImageField() {
+        const index = customImageIndex++;
+        const div = document.createElement('div');
+        div.className = 'custom-image-item mb-3 p-3 border rounded';
+        div.setAttribute('data-index', index);
+        
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="mb-0">Imagem Customizada #${index + 1}</h6>
+                <button type="button" class="btn btn-sm btn-danger remove-custom-image" data-index="${index}">
+                    🗑️ Remover
+                </button>
+            </div>
+            <div class="form-group mb-2">
+                <label for="custom_titulo_${index}">Título/Descrição da Imagem <span class="required">*</span></label>
+                <input type="text" name="custom_titulo_${index}" id="custom_titulo_${index}" 
+                       class="form-control" required placeholder="Ex: Mapa de correntes, Foto aérea, etc.">
+            </div>
+            <div class="form-group mb-2">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <input type="checkbox" name="custom_usa_${index}" id="custom_usa_${index}" checked>
+                    <label for="custom_usa_${index}" style="margin: 0;">Usar esta imagem no relatório</label>
+                </div>
+                <input type="file" name="custom_imagem_${index}" id="custom_imagem_${index}" 
+                       class="form-control" accept="image/*" required>
+            </div>
+        `;
+        
+        container.appendChild(div);
+        
+        // Adiciona evento de remoção
+        div.querySelector('.remove-custom-image').addEventListener('click', function() {
+            div.remove();
+        });
+    }
+
+    addBtn.addEventListener('click', addCustomImageField);
 });
 </script>
 {% endblock %}
