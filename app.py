@@ -1,4 +1,4 @@
-import os, datetime, traceback
+import os, datetime, traceback, gc
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
@@ -10,6 +10,11 @@ try:
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 # from docx2pdf import convert  # Removido devido a problemas de COM
 
 from config import config as config_map
@@ -194,29 +199,113 @@ def get_value_or_default(value, default="Não informado"):
         return default
     return str(value)
 
-def optimize_image_for_docx(image_path, max_width=1200, max_height=1200):
-    """Otimiza imagem redimensionando se necessário para economizar memória"""
+def log_memory_usage(context=""):
+    """Loga o uso de memória para diagnóstico"""
+    if PSUTIL_AVAILABLE:
+        try:
+            mem = psutil.virtual_memory()
+            print(f"[memoria] {context} - Uso: {mem.percent:.1f}% ({mem.used / 1024 / 1024:.1f} MB / {mem.total / 1024 / 1024:.1f} MB)")
+        except:
+            pass
+
+def compress_image_on_upload(image_path, max_width=1600, max_height=1600, quality=60):
+    """Comprime imagem no upload para reduzir tamanho e uso de memória (ultra-agressivo)"""
     if not PIL_AVAILABLE or not image_path or not os.path.exists(image_path):
         return image_path
     
     try:
+        # Verifica tamanho do arquivo original
+        original_size = os.path.getsize(image_path) / 1024 / 1024  # MB
+        if original_size < 0.5:  # Se já é pequena (< 0.5MB), não precisa comprimir
+            return image_path
+        
         with Image.open(image_path) as img:
-            # Verifica se precisa redimensionar
-            if img.width <= max_width and img.height <= max_height:
-                return image_path
+            # Converte para RGB se necessário (remove transparência para JPEG)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
             
-            # Redimensiona mantendo proporção
-            img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+            # Redimensiona se necessário
+            if img.width > max_width or img.height > max_height:
+                img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
             
-            # Salva em arquivo temporário otimizado
+            # Determina formato de saída baseado na extensão original
+            ext = os.path.splitext(image_path)[1].lower()
+            if ext in ('.jpg', '.jpeg'):
+                format = 'JPEG'
+                save_path = image_path
+            elif ext == '.png':
+                # PNG mantém transparência, mas vamos converter para JPEG para economizar
+                format = 'JPEG'
+                save_path = os.path.splitext(image_path)[0] + '.jpg'
+            else:
+                # Outros formatos -> JPEG
+                format = 'JPEG'
+                save_path = os.path.splitext(image_path)[0] + '.jpg'
+            
+            # Salva comprimido
+            img.save(save_path, format, optimize=True, quality=quality)
+            
+            # Remove arquivo original se foi convertido
+            if save_path != image_path and os.path.exists(image_path):
+                try:
+                    os.remove(image_path)
+                except:
+                    pass
+            
+            new_size = os.path.getsize(save_path) / 1024 / 1024  # MB
+            print(f"[upload] Imagem comprimida: {original_size:.2f} MB -> {new_size:.2f} MB ({save_path})")
+            return save_path
+    except Exception as e:
+        print(f"[upload] Erro ao comprimir {image_path}: {e}")
+        traceback.print_exc()
+        return image_path
+
+def optimize_image_for_docx(image_path, max_width=800, max_height=800, quality=50):
+    """Otimiza imagem para inserção no DOCX (ultra-agressivo para economizar memória)"""
+    if not PIL_AVAILABLE or not image_path or not os.path.exists(image_path):
+        return image_path
+    
+    try:
+        # Força garbage collection antes de processar
+        gc.collect()
+        
+        with Image.open(image_path) as img:
+            # Converte para RGB se necessário
+            if img.mode in ('RGBA', 'LA', 'P'):
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Sempre redimensiona para garantir tamanho máximo (ultra-agressivo - 800px max)
+            if img.width > max_width or img.height > max_height:
+                img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+            
+            # Salva em arquivo temporário otimizado com compressão ultra-agressiva
             temp_dir = os.path.join(app.root_path, 'static', 'temp')
             os.makedirs(temp_dir, exist_ok=True)
             temp_path = os.path.join(temp_dir, f"opt_{os.path.basename(image_path)}")
-            img.save(temp_path, optimize=True, quality=85)
-            print(f"[imagem] Imagem otimizada: {image_path} -> {temp_path}")
+            img.save(temp_path, 'JPEG', optimize=True, quality=quality)
+            print(f"[imagem] Imagem otimizada: {image_path} -> {temp_path} ({img.width}x{img.height}, qualidade {quality}%)")
+            
+            # Libera memória imediatamente
+            del img
+            gc.collect()
+            
             return temp_path
     except Exception as e:
         print(f"[imagem] Erro ao otimizar {image_path}: {e}")
+        traceback.print_exc()
+        gc.collect()
         return image_path
 
 def _iter_block_items(doc):
@@ -259,7 +348,7 @@ def replace_placeholders(doc: Document, mapping: dict, image_keys: list):
                     valor = get_value_or_default(v)
                     para.text = para.text.replace(token, valor)
 
-    # Imagens
+    # Imagens - processa uma de cada vez para economizar memória
     for para in list(_iter_block_items(doc)):
         for k in image_keys:
             tokens = [f"{{{{{k}}}}}", f"substituir_{k}", f"inserir_imagem_{k}"]
@@ -268,6 +357,7 @@ def replace_placeholders(doc: Document, mapping: dict, image_keys: list):
                 path = mapping.get(k)
                 if path:
                     try:
+                        log_memory_usage(f"Antes de processar imagem {k}")
                         abs_path = os.path.abspath(path)
                         if not os.path.exists(abs_path):
                             print(f"[imagem] Arquivo não encontrado para chave '{k}': {abs_path}")
@@ -277,9 +367,19 @@ def replace_placeholders(doc: Document, mapping: dict, image_keys: list):
                         run = para.add_run()
                         run.add_picture(optimized_path, width=Inches(3))
                         print(f"[imagem] Inserida imagem para chave '{k}': {optimized_path}")
+                        # Remove arquivo temporário imediatamente após inserir
+                        try:
+                            if optimized_path != abs_path and os.path.exists(optimized_path):
+                                os.remove(optimized_path)
+                        except:
+                            pass
+                        # Libera memória após inserir
+                        gc.collect()
+                        log_memory_usage(f"Após processar imagem {k}")
                     except Exception as e:
                         print(f"[imagem] Falha ao inserir '{k}' em {path}: {e}")
                         traceback.print_exc()
+                        gc.collect()
                 # Não logar se path for None - é esperado para campos opcionais
 
 def append_document(target: Document, source: Document):
@@ -304,7 +404,7 @@ def replace_phrase_map(doc: Document, phrase_map: dict, image_phrase_map: dict):
                 changed = True
         if changed:
             para.text = text
-    # imagens
+    # imagens - processa uma de cada vez para economizar memória
     for para in list(_iter_block_items(doc)):
         t = para.text or ''
         for phrase, path in image_phrase_map.items():
@@ -312,6 +412,7 @@ def replace_phrase_map(doc: Document, phrase_map: dict, image_phrase_map: dict):
                 para.text = ''
                 if path:
                     try:
+                        log_memory_usage(f"Antes de processar imagem frase '{phrase[:30]}...'")
                         abs_path = os.path.abspath(path)
                         if not os.path.exists(abs_path):
                             print(f"[imagem] Arquivo não encontrado para frase '{phrase}': {abs_path}")
@@ -320,9 +421,19 @@ def replace_phrase_map(doc: Document, phrase_map: dict, image_phrase_map: dict):
                         optimized_path = optimize_image_for_docx(abs_path)
                         para.add_run().add_picture(optimized_path, width=Inches(3))
                         print(f"[imagem] Inserida imagem para frase '{phrase}': {optimized_path}")
+                        # Remove arquivo temporário imediatamente após inserir
+                        try:
+                            if optimized_path != abs_path and os.path.exists(optimized_path):
+                                os.remove(optimized_path)
+                        except:
+                            pass
+                        # Libera memória após inserir
+                        gc.collect()
+                        log_memory_usage(f"Após processar imagem frase '{phrase[:30]}...'")
                     except Exception as e:
                         print(f"[imagem] Falha ao inserir para frase '{phrase}' em {path}: {e}")
                         traceback.print_exc()
+                        gc.collect()
                 # Não logar se path for None - é esperado para campos opcionais
 
 @app.route('/')
@@ -389,8 +500,11 @@ def nova():
                     filename = secure_filename(f.filename)
                     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     f.save(path)
-                    setattr(o, campo_img, path)
+                    # Comprime a imagem imediatamente após upload (pode alterar o caminho se converter formato)
+                    compressed_path = compress_image_on_upload(path)
+                    setattr(o, campo_img, compressed_path)
                     print(f"[upload] Salvo '{campo_img}' em {os.path.abspath(path)}")
+                    log_memory_usage(f"Após upload {campo_img}")
         
         db.session.add(o)
         db.session.commit()
@@ -454,8 +568,11 @@ def novo_dia(id):
                 filename = secure_filename(f.filename)
                 path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 f.save(path)
-                setattr(d, campo, path)
+                # Comprime a imagem imediatamente após upload (pode alterar o caminho se converter formato)
+                compressed_path = compress_image_on_upload(path)
+                setattr(d, campo, compressed_path)
                 print(f"[upload] Salvo dia '{campo}' em {os.path.abspath(path)}")
+                log_memory_usage(f"Após upload dia {campo}")
         db.session.add(d)
         db.session.commit()
         return redirect(url_for('index'))
@@ -492,8 +609,11 @@ def finalizar(id):
                 filename = secure_filename(f.filename)
                 path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 f.save(path)
-                setattr(r, campo, path)
+                # Comprime a imagem imediatamente após upload (pode alterar o caminho se converter formato)
+                compressed_path = compress_image_on_upload(path)
+                setattr(r, campo, compressed_path)
                 print(f"[upload] Salvo final '{campo}' em {os.path.abspath(path)}")
+                log_memory_usage(f"Após upload final {campo}")
         db.session.add(r)
         # marca ocorrência como finalizada
         oc = Ocorrencia.query.get(id)
@@ -505,6 +625,7 @@ def finalizar(id):
 @app.route('/gerar/<int:id>')
 def gerar(id):
     try:
+        log_memory_usage("Início da geração de relatório")
         oc = Ocorrencia.query.get(id)
         if not oc:
             flash('Ocorrência não encontrada!', 'error')
@@ -592,6 +713,7 @@ def gerar(id):
         # Seleciona o template apropriado baseado no tipo de busca
         if dias:
             for i, dia in enumerate(dias, 1):
+                log_memory_usage(f"Processando dia {i} de {len(dias)}")
                 # Determina qual template usar baseado no tipo de busca
                 tipo_busca = getattr(dia, 'tipo_busca', 'aquatica')  # default aquatica para compatibilidade
                 if tipo_busca == 'terrestre':
@@ -603,6 +725,9 @@ def gerar(id):
                     ddoc = Document(dia_tpl_path)
                     # Anexa o template do dia ao documento final
                     append_document(base_doc, ddoc)
+                    # Libera memória do documento temporário
+                    del ddoc
+                    gc.collect()
                 
                 # Obter nome do dia
                 nome_dia = get_nome_dia(i)
@@ -652,6 +777,9 @@ def gerar(id):
                     if normalized:
                         image_phrase_map[phrase] = normalized
                 replace_phrase_map(base_doc, phrase_map, image_phrase_map)
+                # Libera memória após processar cada dia
+                gc.collect()
+                log_memory_usage(f"Após processar dia {i}")
 
         # 3) Resultado final
         final_tpl_path = get_template_path('modelo_resultado_final_buscas.docx')
@@ -696,8 +824,26 @@ def gerar(id):
         nome_docx = f'relatorio_{id}.docx'
         output_path = os.path.join(output_dir, nome_docx)
         
+        log_memory_usage("Antes de salvar DOCX")
         print(f"[gerar] Salvando relatório em: {output_path}")
         base_doc.save(output_path)
+        
+        # Limpa arquivos temporários de imagens otimizadas
+        try:
+            temp_dir = os.path.join(app.root_path, 'static', 'temp')
+            for file in os.listdir(temp_dir):
+                if file.startswith('opt_') and file.endswith(('.jpg', '.jpeg', '.png')):
+                    temp_file = os.path.join(temp_dir, file)
+                    try:
+                        os.remove(temp_file)
+                    except:
+                        pass
+        except:
+            pass
+        
+        # Força garbage collection para liberar memória
+        gc.collect()
+        log_memory_usage("Após salvar DOCX e limpeza")
         
         return send_file(output_path, as_attachment=True, download_name=nome_docx)
     
@@ -773,8 +919,11 @@ def editar(id):
                     filename = secure_filename(f.filename)
                     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     f.save(path)
-                    setattr(ocorrencia, campo_img, path)
+                    # Comprime a imagem imediatamente após upload (pode alterar o caminho se converter formato)
+                    compressed_path = compress_image_on_upload(path)
+                    setattr(ocorrencia, campo_img, compressed_path)
                     print(f"[upload] Atualizado '{campo_img}' em {os.path.abspath(path)}")
+                    log_memory_usage(f"Após atualizar {campo_img}")
         
         db.session.commit()
         flash('Ocorrência atualizada com sucesso!', 'success')
@@ -820,8 +969,11 @@ def editar_dia(id):
                 filename = secure_filename(f.filename)
                 path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 f.save(path)
-                setattr(dia, campo, path)
+                # Comprime a imagem imediatamente após upload (pode alterar o caminho se converter formato)
+                compressed_path = compress_image_on_upload(path)
+                setattr(dia, campo, compressed_path)
                 print(f"[upload] Atualizado dia '{campo}' em {os.path.abspath(path)}")
+                log_memory_usage(f"Após atualizar dia {campo}")
         
         db.session.commit()
         flash('Dia de busca atualizado com sucesso!', 'success')

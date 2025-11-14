@@ -12,3 +12,4 @@ SQLAlchemy==2.0.43
 lxml==6.0.2
 gunicorn==21.2.0
 psycopg2-binary==2.9.10
+psutil==5.9.8
