@@ -77,8 +77,44 @@ O sistema agora permite selecionar entre **Busca Terrestre** e **Busca Aquática
 - `inserir imagem de previsao do dia fornecida pelo usuario` - Previsão do dia
 - `inserir imagem de trajetos das buscas fornecida pelo usuario` - Trajetos das buscas
 
+### Placeholders para Títulos de Imagens (para remoção automática quando imagem não for usada)
+
+**IMPORTANTE**: Use estes placeholders para os títulos das imagens na introdução. Quando uma imagem não for selecionada pelo usuário, o título será automaticamente removido do relatório.
+
+#### Imagens da Introdução:
+- `substituir pelo titulo condicoes meteorologicas` - Título para "Condições Meteorológicas"
+- `substituir pelo titulo imagem do local` - Título para "Imagem do Local"
+- `substituir pelo titulo imagem upv` - Título para "Imagem UPV"
+- `substituir pelo titulo imagem satelite upv` - Título para "Imagem Satélite UPV"
+- `substituir pelo titulo imagem raio de busca` - Título para "Imagem Raio de Busca"
+- `substituir pelo titulo imagem tábua de maré` - Título para "Imagem Tábua de Maré"
+- `substituir pelo titulo imagem previsão de temperatura e ondas` - Título para "Imagem Previsão de Temperatura e Ondas"
+
+#### Imagens dos Dias de Busca:
+- `substituir pelo titulo imagem tábua de maré do dia` - Título para "Tábua de Maré do Dia"
+- `substituir pelo titulo imagem de previsão do dia` - Título para "Previsão do Dia"
+- `substituir pelo titulo imagem de trajetos das buscas` - Título para "Trajetos das Buscas"
+
+#### Imagens do Resultado Final:
+- `substituir pelo titulo imagem do corpo` - Título para "Imagem do Corpo"
+- `substituir pelo titulo imagem do local do corpo` - Título para "Imagem do Local do Corpo"
+
+#### Imagens Customizadas (Adicionais):
+As imagens customizadas usam placeholders numéricos baseados na ordem de inserção (começando em 0):
+
+- `substituir pelo titulo imagem customizada 0` - Título da primeira imagem customizada
+- `inserir imagem customizada 0 fornecida pelo usuario` - Primeira imagem customizada
+- `substituir pelo titulo imagem customizada 1` - Título da segunda imagem customizada
+- `inserir imagem customizada 1 fornecida pelo usuario` - Segunda imagem customizada
+- `substituir pelo titulo imagem customizada 2` - Título da terceira imagem customizada
+- `inserir imagem customizada 2 fornecida pelo usuario` - Terceira imagem customizada
+- ... e assim por diante
+
+**Nota**: As imagens customizadas são ordenadas pela ordem de inserção. Se uma imagem customizada não for selecionada para uso (checkbox desmarcado), tanto o título quanto a imagem serão removidos do relatório.
+
 ## Exemplo de Uso no Modelo DOCX
 
+### Exemplo para Dias de Busca:
 ```
 DIA {{dia_nome|upper}} DE BUSCA - {{dia_data}}
 
@@ -94,6 +130,24 @@ Recursos Utilizados:
 
 Guarnição:
 {{dia_guarnicao}}
+```
+
+### Exemplo para Imagens com Títulos:
+```
+substituir pelo titulo condicoes meteorologicas
+inserir imagem condicoes meteorologicas fornecida pelo usuario
+
+substituir pelo titulo imagem do local
+inserir imagem local fornecida pelo usuario
+```
+
+### Exemplo para Imagens Customizadas:
+```
+substituir pelo titulo imagem customizada 0
+inserir imagem customizada 0 fornecida pelo usuario
+
+substituir pelo titulo imagem customizada 1
+inserir imagem customizada 1 fornecida pelo usuario
 ```
 
 ## Tratamento de Valores Vazios
@@ -140,4 +194,15 @@ Endereço: Não informado
 
 8. **Imagens Opcionais**: Cada imagem na introdução possui um checkbox para indicar se deve ser usada no relatório. Imagens não selecionadas não serão incluídas.
 
-9. **Compatibilidade**: O campo `tipo_busca` foi adicionado ao modelo DiaBusca. Para ocorrências antigas, o padrão será 'aquatica'.
+9. **Títulos de Imagens**: Os títulos das imagens devem usar os placeholders `substituir pelo titulo ...` no modelo DOCX. Quando uma imagem não for selecionada pelo usuário, o título correspondente será automaticamente removido do relatório. **Exemplo de uso no modelo:**
+   ```
+   substituir pelo titulo condicoes meteorologicas
+   inserir imagem condicoes meteorologicas fornecida pelo usuario
+   ```
+   Se o usuário desmarcar o checkbox da imagem, tanto o título quanto a imagem serão removidos.
+
+10. **Imagens Customizadas**: As imagens customizadas (adicionais) usam placeholders numéricos baseados na ordem de inserção (0, 1, 2, etc.). O título da imagem customizada é o texto fornecido pelo usuário ao fazer upload. Se o usuário desmarcar o checkbox "Usar esta imagem no relatório", tanto o título quanto a imagem serão removidos. **Importante**: 
+   - Coloque os placeholders das imagens customizadas na ordem correta no modelo (0, 1, 2...) para corresponder à ordem de inserção.
+   - **Limite**: O sistema permite no máximo **10 imagens customizadas** por ocorrência. O botão de adicionar será desabilitado quando o limite for atingido.
+
+11. **Compatibilidade**: O campo `tipo_busca` foi adicionado ao modelo DiaBusca. Para ocorrências antigas, o padrão será 'aquatica'.

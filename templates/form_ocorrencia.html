@@ -369,8 +369,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // Sistema de imagens customizadas
     const container = document.getElementById('custom-images-container');
     const addBtn = document.getElementById('add-custom-image-btn');
+    const MAX_IMAGENS_CUSTOMIZADAS = 10;
+
+    function updateAddButtonState() {
+        const totalImagens = container.querySelectorAll('.custom-image-item').length;
+        if (totalImagens >= MAX_IMAGENS_CUSTOMIZADAS) {
+            addBtn.disabled = true;
+            addBtn.title = `Limite de ${MAX_IMAGENS_CUSTOMIZADAS} imagens customizadas atingido`;
+            addBtn.classList.add('disabled');
+        } else {
+            addBtn.disabled = false;
+            addBtn.title = '';
+            addBtn.classList.remove('disabled');
+        }
+    }
 
     function addCustomImageField() {
+        const totalImagens = container.querySelectorAll('.custom-image-item').length;
+        if (totalImagens >= MAX_IMAGENS_CUSTOMIZADAS) {
+            alert(`Limite de ${MAX_IMAGENS_CUSTOMIZADAS} imagens customizadas atingido.`);
+            return;
+        }
+
         const index = customImageIndex++;
         const div = document.createElement('div');
         div.className = 'custom-image-item mb-3 p-3 border rounded';
@@ -403,10 +423,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Adiciona evento de remoção
         div.querySelector('.remove-custom-image').addEventListener('click', function() {
             div.remove();
+            updateAddButtonState();
         });
+        
+        updateAddButtonState();
     }
 
     addBtn.addEventListener('click', addCustomImageField);
+    updateAddButtonState(); // Atualiza estado inicial
 });
 </script>
 {% endblock %}

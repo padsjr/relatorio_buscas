@@ -410,8 +410,52 @@ document.addEventListener('DOMContentLoaded', function() {
     // Sistema de imagens customizadas
     const container = document.getElementById('custom-images-container');
     const addBtn = document.getElementById('add-custom-image-btn');
+    const MAX_IMAGENS_CUSTOMIZADAS = 10;
+    
+    // Conta imagens existentes (não marcadas para exclusão)
+    function countExistingImages() {
+        const existingImages = document.querySelectorAll('.custom-image-item:not([data-index])');
+        let count = 0;
+        existingImages.forEach(img => {
+            const deleteCheckbox = img.querySelector('input[type="checkbox"][id^="custom_delete_"]');
+            if (!deleteCheckbox || !deleteCheckbox.checked) {
+                count++;
+            }
+        });
+        return count;
+    }
+    
+    function updateAddButtonState() {
+        const existingCount = countExistingImages();
+        const newCount = container.querySelectorAll('.custom-image-item[data-index]').length;
+        const totalImagens = existingCount + newCount;
+        
+        if (totalImagens >= MAX_IMAGENS_CUSTOMIZADAS) {
+            addBtn.disabled = true;
+            addBtn.title = `Limite de ${MAX_IMAGENS_CUSTOMIZADAS} imagens customizadas atingido`;
+            addBtn.classList.add('disabled');
+        } else {
+            addBtn.disabled = false;
+            addBtn.title = '';
+            addBtn.classList.remove('disabled');
+        }
+    }
+    
+    // Atualiza estado quando checkbox de exclusão é alterado
+    document.querySelectorAll('input[type="checkbox"][id^="custom_delete_"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateAddButtonState);
+    });
 
     function addCustomImageField() {
+        const existingCount = countExistingImages();
+        const newCount = container.querySelectorAll('.custom-image-item[data-index]').length;
+        const totalImagens = existingCount + newCount;
+        
+        if (totalImagens >= MAX_IMAGENS_CUSTOMIZADAS) {
+            alert(`Limite de ${MAX_IMAGENS_CUSTOMIZADAS} imagens customizadas atingido.`);
+            return;
+        }
+
         const index = customImageIndex++;
         const div = document.createElement('div');
         div.className = 'custom-image-item mb-3 p-3 border rounded';
@@ -444,11 +488,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Adiciona evento de remoção
         div.querySelector('.remove-custom-image').addEventListener('click', function() {
             div.remove();
+            updateAddButtonState();
         });
+        
+        updateAddButtonState();
     }
 
     if (addBtn) {
         addBtn.addEventListener('click', addCustomImageField);
+        updateAddButtonState(); // Atualiza estado inicial
     }
 });
 </script>

@@ -394,10 +394,32 @@ def append_document(target: Document, source: Document):
     for element in list(source.element.body):
         target.element.body.append(deepcopy(element))
 
-def replace_phrase_map(doc: Document, phrase_map: dict, image_phrase_map: dict):
+def replace_phrase_map(doc: Document, phrase_map: dict, image_phrase_map: dict, image_title_map: dict = None):
     """Substitui frases completas do tipo 'substituir pelo ... fornecido pelo usuario'
     e insere imagens para 'inserir imagem ...'. Funciona em parágrafos e células de tabela.
+    
+    Args:
+        doc: Documento DOCX
+        phrase_map: Mapeamento de frases para valores de texto
+        image_phrase_map: Mapeamento de frases para caminhos de imagens
+        image_title_map: Mapeamento de frases de imagem para placeholders de título
+                         Ex: {'inserir imagem condicoes meteorologicas...': 'substituir pelo titulo condicoes meteorologicas'}
     """
+    # Primeiro, remove títulos de imagens que não serão usadas
+    if image_title_map:
+        # Identifica quais imagens serão usadas
+        images_to_use = set(image_phrase_map.keys())
+        
+        # Remove parágrafos com títulos de imagens que não serão usadas
+        for para in list(_iter_block_items(doc)):
+            text = para.text or ''
+            # Verifica se o parágrafo contém um título de imagem que não será usado
+            for image_phrase, title_phrase in image_title_map.items():
+                if image_phrase not in images_to_use and title_phrase in text:
+                    # Remove o parágrafo inteiro se contém o título e a imagem não será usada
+                    para.text = ''
+                    print(f"[titulo] Removido título '{title_phrase}' pois imagem não será usada")
+    
     # texto
     for para in _iter_block_items(doc):
         text = para.text
@@ -412,6 +434,7 @@ def replace_phrase_map(doc: Document, phrase_map: dict, image_phrase_map: dict):
                 changed = True
         if changed:
             para.text = text
+    
     # imagens - processa uma de cada vez para economizar memória
     for para in list(_iter_block_items(doc)):
         t = para.text or ''
@@ -518,8 +541,12 @@ def nova():
         db.session.add(o)
         db.session.flush()  # Para obter o ID da ocorrência
         
+        # Limite de imagens customizadas
+        MAX_IMAGENS_CUSTOMIZADAS = 10
+        
         # Processa imagens customizadas (formato: custom_titulo_0, custom_imagem_0, custom_usa_0, etc.)
         custom_index = 0
+        imagens_adicionadas = 0
         while True:
             titulo_key = f'custom_titulo_{custom_index}'
             imagem_key = f'custom_imagem_{custom_index}'
@@ -530,6 +557,11 @@ def nova():
             
             # Se não tem título, não há mais imagens customizadas
             if not titulo:
+                break
+            
+            # Verifica limite de imagens customizadas
+            if imagens_adicionadas >= MAX_IMAGENS_CUSTOMIZADAS:
+                flash(f'Limite de {MAX_IMAGENS_CUSTOMIZADAS} imagens customizadas atingido. As imagens adicionais foram ignoradas.', 'warning')
                 break
             
             # Verifica se há arquivo de imagem
@@ -550,6 +582,7 @@ def nova():
                         usa_imagem=usa_imagem
                     )
                     db.session.add(img_custom)
+                    imagens_adicionadas += 1
                     print(f"[upload] Imagem customizada salva: '{titulo}' em {compressed_path}")
             
             custom_index += 1
@@ -746,44 +779,62 @@ def gerar(id):
                 ('inserir imagem previsão de temperatura e ondas fornecida pelo usuario', oc.img_prev_temp_onda, oc.usa_img_prev_temp_onda),
             ]
             
+            # Mapeamento de títulos das imagens (frase de imagem -> placeholder de título)
+            image_title_map = {
+                'inserir imagem condicoes meteorologicas fornecida pelo usuario': 'substituir pelo titulo condicoes meteorologicas',
+                'inserir imagem local fornecida pelo usuario': 'substituir pelo titulo imagem do local',
+                'inserir imagem upv fornecida pelo usuario': 'substituir pelo titulo imagem upv',
+                'inserir imagem satelite upv fornecida pelo usuario': 'substituir pelo titulo imagem satelite upv',
+                'inserir imagem raio de busca fornecida pelo usuario': 'substituir pelo titulo imagem raio de busca',
+                'inserir imagem tábua de maré fornecida pelo usuario': 'substituir pelo titulo imagem tábua de maré',
+                'inserir imagem previsão de temperatura e ondas fornecida pelo usuario': 'substituir pelo titulo imagem previsão de temperatura e ondas',
+            }
+            
+            # Adiciona os títulos ao phrase_map quando as imagens serão usadas
             for phrase, image_path, use_image in image_mapping:
                 if use_image and image_path:
                     normalized_path = normalize_image_path(image_path)
                     if normalized_path:
                         image_phrase_map[phrase] = normalized_path
+                        # Adiciona o título ao phrase_map se a imagem será usada
+                        if phrase in image_title_map:
+                            title_phrase = image_title_map[phrase]
+                            # Extrai o título do placeholder (remove "substituir pelo titulo")
+                            title_text = title_phrase.replace('substituir pelo titulo ', '').title()
+                            phrase_map[title_phrase] = title_text
             
-            replace_phrase_map(base_doc, phrase_map, image_phrase_map)
+            replace_phrase_map(base_doc, phrase_map, image_phrase_map, image_title_map)
             
-            # Adiciona imagens customizadas após as imagens padrão
+            # Processa imagens customizadas usando placeholders no modelo
             imagens_customizadas = ImagemCustomizada.query.filter_by(
-                ocorrencia_id=id,
-                usa_imagem=True
+                ocorrencia_id=id
             ).order_by(ImagemCustomizada.ordem).all()
             
             if imagens_customizadas:
-                for img_custom in imagens_customizadas:
-                    normalized_path = normalize_image_path(img_custom.caminho)
-                    if normalized_path:
-                        # Adiciona um parágrafo com o título da imagem
-                        para_titulo = base_doc.add_paragraph()
-                        para_titulo.add_run(f"{img_custom.titulo}:").bold = True
-                        
-                        # Adiciona a imagem
-                        para_img = base_doc.add_paragraph()
-                        try:
-                            optimized_path = optimize_image_for_docx(normalized_path)
-                            para_img.add_run().add_picture(optimized_path, width=Inches(3))
-                            print(f"[imagem] Inserida imagem customizada '{img_custom.titulo}': {optimized_path}")
-                            # Remove arquivo temporário
-                            try:
-                                if optimized_path != normalized_path and os.path.exists(optimized_path):
-                                    os.remove(optimized_path)
-                            except:
-                                pass
-                            gc.collect()
-                        except Exception as e:
-                            print(f"[imagem] Falha ao inserir imagem customizada '{img_custom.titulo}': {e}")
-                            traceback.print_exc()
+                # Cria mapeamento de placeholders para imagens customizadas
+                custom_image_phrase_map = {}
+                custom_image_title_map = {}
+                
+                for idx, img_custom in enumerate(imagens_customizadas):
+                    # Placeholders baseados no índice da imagem
+                    title_phrase = f'substituir pelo titulo imagem customizada {idx}'
+                    image_phrase = f'inserir imagem customizada {idx} fornecida pelo usuario'
+                    
+                    if img_custom.usa_imagem:
+                        normalized_path = normalize_image_path(img_custom.caminho)
+                        if normalized_path:
+                            custom_image_phrase_map[image_phrase] = normalized_path
+                            # Adiciona o título ao phrase_map
+                            phrase_map[title_phrase] = img_custom.titulo
+                            # Mapeia título para imagem
+                            custom_image_title_map[image_phrase] = title_phrase
+                    else:
+                        # Se não usar, apenas mapeia para remoção do título
+                        custom_image_title_map[image_phrase] = title_phrase
+                
+                # Processa as imagens customizadas usando replace_phrase_map
+                if custom_image_phrase_map or custom_image_title_map:
+                    replace_phrase_map(base_doc, phrase_map, custom_image_phrase_map, custom_image_title_map)
         else:
             base_doc = Document()
 
@@ -846,6 +897,12 @@ def gerar(id):
                     'substituir pelo status da vitima fornecido pelo usuario': dia.status_vitima,
                 }
                 image_phrase_map = {}
+                # Mapeamento de títulos das imagens dos dias
+                image_title_map_dia = {
+                    'inserir imagem tábua de maré do dia fornecida pelo usuario': 'substituir pelo titulo imagem tábua de maré do dia',
+                    'inserir imagem de previsao do dia fornecida pelo usuario': 'substituir pelo titulo imagem de previsão do dia',
+                    'inserir imagem de trajetos das buscas fornecida pelo usuario': 'substituir pelo titulo imagem de trajetos das buscas',
+                }
                 for phrase, img_path in [
                     ('inserir imagem tábua de maré do dia fornecida pelo usuario', dia.img_tab_mare),
                     ('inserir imagem de previsao do dia fornecida pelo usuario', dia.img_prev_temp),
@@ -854,7 +911,12 @@ def gerar(id):
                     normalized = normalize_image_path(img_path)
                     if normalized:
                         image_phrase_map[phrase] = normalized
-                replace_phrase_map(base_doc, phrase_map, image_phrase_map)
+                        # Adiciona o título ao phrase_map se a imagem será usada
+                        if phrase in image_title_map_dia:
+                            title_phrase = image_title_map_dia[phrase]
+                            title_text = title_phrase.replace('substituir pelo titulo ', '').title()
+                            phrase_map[title_phrase] = title_text
+                replace_phrase_map(base_doc, phrase_map, image_phrase_map, image_title_map_dia)
                 # Libera memória após processar cada dia
                 gc.collect()
                 log_memory_usage(f"Após processar dia {i}")
@@ -887,6 +949,11 @@ def gerar(id):
                 'substituir pelo relato final fornecido pelo usuario': rf.relato,
             }
             image_phrase_map = {}
+            # Mapeamento de títulos das imagens do resultado final
+            image_title_map_final = {
+                'inserir imagem do corpo fornecida pelo usuario': 'substituir pelo titulo imagem do corpo',
+                'inserir imagem do local do corpo fornecida pelo usuario': 'substituir pelo titulo imagem do local do corpo',
+            }
             for phrase, img_path in [
                 ('inserir imagem do corpo fornecida pelo usuario', rf.img_corpo),
                 ('inserir imagem do local do corpo fornecida pelo usuario', rf.img_local_corpo),
@@ -894,7 +961,12 @@ def gerar(id):
                 normalized = normalize_image_path(img_path)
                 if normalized:
                     image_phrase_map[phrase] = normalized
-            replace_phrase_map(base_doc, phrase_map, image_phrase_map)
+                    # Adiciona o título ao phrase_map se a imagem será usada
+                    if phrase in image_title_map_final:
+                        title_phrase = image_title_map_final[phrase]
+                        title_text = title_phrase.replace('substituir pelo titulo ', '').title()
+                        phrase_map[title_phrase] = title_text
+            replace_phrase_map(base_doc, phrase_map, image_phrase_map, image_title_map_final)
 
         # Salva o arquivo em um diretório temporário
         output_dir = os.path.join(app.root_path, 'static', 'temp')
@@ -1046,7 +1118,17 @@ def editar(id):
                     img_existente.caminho = compressed_path
         
         # Adiciona novas imagens customizadas
+        # Limite de imagens customizadas
+        MAX_IMAGENS_CUSTOMIZADAS = 10
+        
+        # Conta quantas imagens customizadas já existem (não deletadas)
+        imagens_existentes = ImagemCustomizada.query.filter_by(ocorrencia_id=id).all()
+        imagens_nao_deletadas = sum(1 for img in imagens_existentes 
+                                   if not request.form.get(f'custom_delete_{img.id}'))
+        imagens_restantes = MAX_IMAGENS_CUSTOMIZADAS - imagens_nao_deletadas
+        
         custom_index = 0
+        imagens_adicionadas = 0
         while True:
             titulo_key = f'custom_titulo_{custom_index}'
             imagem_key = f'custom_imagem_{custom_index}'
@@ -1056,6 +1138,11 @@ def editar(id):
             usa_imagem = request.form.get(usa_key, 'on') == 'on'
             
             if not titulo:
+                break
+            
+            # Verifica limite de imagens customizadas
+            if imagens_adicionadas >= imagens_restantes:
+                flash(f'Limite de {MAX_IMAGENS_CUSTOMIZADAS} imagens customizadas atingido. As imagens adicionais foram ignoradas.', 'warning')
                 break
             
             if imagem_key in request.files:
@@ -1078,6 +1165,7 @@ def editar(id):
                         usa_imagem=usa_imagem
                     )
                     db.session.add(img_custom)
+                    imagens_adicionadas += 1
             
             custom_index += 1
         
