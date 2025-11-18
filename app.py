@@ -1,4 +1,4 @@
-import os, datetime, traceback, gc
+import os, datetime, traceback, gc, re
 from flask import Flask, render_template, request, redirect, url_for, send_file, flash
 from werkzeug.utils import secure_filename
 from flask_sqlalchemy import SQLAlchemy
@@ -158,6 +158,7 @@ class DiaBusca(db.Model):
     condicoes = db.Column(db.String(255))
     temp_inicial = db.Column(db.String(20))
     temp_final = db.Column(db.String(20))
+    temp_agua = db.Column(db.String(20))
     guarnicao = db.Column(db.String(255))
     recursos = db.Column(db.String(255))
     historico = db.Column(db.Text)
@@ -215,6 +216,23 @@ def log_memory_usage(context=""):
             print(f"[memoria] {context} - Uso: {mem.percent:.1f}% ({mem.used / 1024 / 1024:.1f} MB / {mem.total / 1024 / 1024:.1f} MB)")
         except:
             pass
+
+INVALID_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*]')
+
+def sanitize_filename(value, fallback="documento"):
+    """Remove caracteres inválidos para nome de arquivo e normaliza espaços"""
+    if not value:
+        value = fallback
+    text = INVALID_FILENAME_CHARS.sub('', value).strip()
+    # Substitui múltiplos espaços por um único espaço
+    text = re.sub(r'\s+', ' ', text)
+    return text or fallback
+
+def build_relatorio_filename(ocorrencia):
+    """Gera o nome do arquivo DOCX conforme especificação do usuário"""
+    base_nome = ocorrencia.nome_vitima or f"Ocorrencia {ocorrencia.id}"
+    nome_limpo = sanitize_filename(base_nome, f"Ocorrencia {ocorrencia.id}")
+    return f"Relatório Buscas {nome_limpo}".strip()
 
 def compress_image_on_upload(image_path, max_width=1600, max_height=1600, quality=60):
     """Comprime imagem no upload para reduzir tamanho e uso de memória (ultra-agressivo)"""
@@ -335,6 +353,15 @@ def _iter_block_items(doc):
             for para in section.header.paragraphs:
                 yield para
 
+def remove_placeholders_from_doc(doc, phrases):
+    """Remove completamente parágrafos/células que contenham os placeholders informados."""
+    if not phrases:
+        return
+    for para in list(_iter_block_items(doc)):
+        text = para.text or ''
+        if any(phrase in text for phrase in phrases):
+            para.text = ''
+
 def replace_placeholders(doc: Document, mapping: dict, image_keys: list):
     """Substitui placeholders de texto e insere imagens.
     Regras aceitas no template:
@@ -407,8 +434,8 @@ def replace_phrase_map(doc: Document, phrase_map: dict, image_phrase_map: dict, 
     """
     # Primeiro, remove títulos de imagens que não serão usadas
     if image_title_map:
-        # Identifica quais imagens serão usadas
-        images_to_use = set(image_phrase_map.keys())
+        # Identifica quais imagens serão usadas (apenas com caminhos válidos)
+        images_to_use = {key for key, path in image_phrase_map.items() if path}
         
         # Remove parágrafos com títulos de imagens que não serão usadas
         for para in list(_iter_block_items(doc)):
@@ -633,6 +660,7 @@ def novo_dia(id):
         d.condicoes = request.form.get('condicoes','')
         d.temp_inicial = request.form.get('temp_inicial','')
         d.temp_final = request.form.get('temp_final','')
+        d.temp_agua = request.form.get('temp_agua','') if d.tipo_busca == 'aquatica' else ''
         d.guarnicao = request.form.get('guarnicao','')
         d.recursos = request.form.get('recursos','')
         d.historico = request.form.get('historico','')
@@ -673,17 +701,29 @@ def finalizar(id):
     if request.method == 'POST':
         r = RelatorioFinal()
         r.ocorrencia_id = id
-        r.status_vitima = request.form.get('status_vitima','')
-        r.estado_biologico = request.form.get('estado_biologico','')
+        allowed_statuses = {'Localizada com vida', 'Localizada em óbito', 'Não localizada'}
+        status_vitima = request.form.get('status_vitima','').strip()
+        if not status_vitima or status_vitima not in allowed_statuses:
+            flash('Selecione um status válido da vítima para finalizar a ocorrência.', 'error')
+            return redirect(url_for('finalizar', id=id))
+        r.status_vitima = status_vitima
         r.coordenada_vitima = request.form.get('coordenada_vitima','')
         r.temp_agua = request.form.get('temp_agua','')
-        r.estado_corpo = request.form.get('estado_corpo','')
+        estado_corpo = request.form.get('estado_corpo','').strip()
+        if status_vitima.lower() == 'localizada em óbito':
+            if not estado_corpo:
+                flash('Informe o estado do corpo para vítimas localizadas em óbito.', 'error')
+                return redirect(url_for('finalizar', id=id))
+            r.estado_corpo = estado_corpo
+        else:
+            r.estado_corpo = ''
         r.temp_total_buscas = request.form.get('temp_total_buscas','')
         r.efetiv_total = request.form.get('efetiv_total','')
         r.rec_empreg = request.form.get('rec_empreg','')
         r.relato = request.form.get('relato','')
         # imagens
-        for campo in ['img_corpo','img_local_corpo']:
+        campos_imagem_final = ['img_corpo','img_local_corpo'] if status_vitima.lower() == 'localizada em óbito' else []
+        for campo in campos_imagem_final:
             f = request.files.get(campo)
             if f and f.filename:
                 filename = secure_filename(f.filename)
@@ -819,18 +859,18 @@ def gerar(id):
                     # Placeholders baseados no índice da imagem
                     title_phrase = f'substituir pelo titulo imagem customizada {idx}'
                     image_phrase = f'inserir imagem customizada {idx} fornecida pelo usuario'
-                    
-                    if img_custom.usa_imagem:
-                        normalized_path = normalize_image_path(img_custom.caminho)
-                        if normalized_path:
-                            custom_image_phrase_map[image_phrase] = normalized_path
-                            # Adiciona o título ao phrase_map
-                            phrase_map[title_phrase] = img_custom.titulo
-                            # Mapeia título para imagem
-                            custom_image_title_map[image_phrase] = title_phrase
+                    normalized_path = normalize_image_path(img_custom.caminho) if img_custom.caminho else None
+                    # Sempre mapeia o título para conseguir removê-lo quando a imagem não for usada
+                    custom_image_title_map[image_phrase] = title_phrase
+
+                    if img_custom.usa_imagem and normalized_path:
+                        custom_image_phrase_map[image_phrase] = normalized_path
+                        # Adiciona o título ao phrase_map apenas quando será exibido
+                        titulo_img = img_custom.titulo.strip() if img_custom.titulo else ''
+                        phrase_map[title_phrase] = titulo_img or f"Imagem Customizada {idx + 1}"
                     else:
-                        # Se não usar, apenas mapeia para remoção do título
-                        custom_image_title_map[image_phrase] = title_phrase
+                        # Marca explicitamente para remover o placeholder da imagem
+                        custom_image_phrase_map[image_phrase] = None
                 
                 # Processa as imagens customizadas usando replace_phrase_map
                 if custom_image_phrase_map or custom_image_title_map:
@@ -866,12 +906,14 @@ def gerar(id):
                     'dia_indice': i,
                     'dia_nome': nome_dia,
                     'dia_data': dia.data,
+                    'dia_tipo_busca': 'Busca Aquática' if tipo_busca == 'aquatica' else 'Busca Terrestre',
                     'dia_hora_inicio': dia.hora_ini,
                     'dia_hora_fim': dia.hora_fim,
                     'dia_numero_ocorrencia': dia.numero_ocorrencia,
                     'dia_condicoes': dia.condicoes,
                     'dia_temp_inicial': dia.temp_inicial,
                     'dia_temp_final': dia.temp_final,
+                    'dia_temp_agua': dia.temp_agua,
                     'dia_guarnicao': dia.guarnicao,
                     'dia_recursos': dia.recursos,
                     'dia_historico': dia.historico,
@@ -885,12 +927,14 @@ def gerar(id):
                 phrase_map = {
                     'substituir pelo nome do dia fornecido pelo usuario': nome_dia,
                     'substituir pela data do dia fornecido pelo usuario': dia.data,
+                    'substituir pelo tipo de busca do dia fornecido pelo usuario': 'Busca Aquática' if tipo_busca == 'aquatica' else 'Busca Terrestre',
                     'substituir pelo horario de inicio fornecido pelo usuario': dia.hora_ini,
                     'substituir pelo horario de fim fornecido pelo usuario': dia.hora_fim,
                     'substituir pelo numero da ocorrencia fornecido pelo usuario': dia.numero_ocorrencia,
                     'substituir pelas condicoes fornecidas pelo usuario': dia.condicoes,
                     'substituir pela temperatura inicial fornecida pelo usuario': dia.temp_inicial,
                     'substituir pela temperatura final fornecida pelo usuario': dia.temp_final,
+                    'substituir pela temperatura da agua do dia fornecida pelo usuario': dia.temp_agua,
                     'substituir pela guarnicao fornecida pelo usuario': dia.guarnicao,
                     'substituir pelos recursos fornecidos pelo usuario': dia.recursos,
                     'substituir pelo historico do dia fornecido pelo usuario': dia.historico,
@@ -939,7 +983,6 @@ def gerar(id):
             replace_placeholders(base_doc, fmapping, image_keys)
             phrase_map = {
                 'substituir pelo status da vitima fornecido pelo usuario': rf.status_vitima,
-                'substituir pelo estado biologico fornecido pelo usuario': rf.estado_biologico,
                 'substituir pela coordenada da vitima fornecida pelo usuario': rf.coordenada_vitima,
                 'substituir pela temperatura da agua fornecida pelo usuario': rf.temp_agua,
                 'substituir pelo estado do corpo fornecido pelo usuario': rf.estado_corpo,
@@ -967,11 +1010,14 @@ def gerar(id):
                         title_text = title_phrase.replace('substituir pelo titulo ', '').title()
                         phrase_map[title_phrase] = title_text
             replace_phrase_map(base_doc, phrase_map, image_phrase_map, image_title_map_final)
+            # Remove completamente o campo de estado biológico do template final
+            remove_placeholders_from_doc(base_doc, ['substituir pelo estado biologico fornecido pelo usuario'])
 
         # Salva o arquivo em um diretório temporário
         output_dir = os.path.join(app.root_path, 'static', 'temp')
         os.makedirs(output_dir, exist_ok=True)
-        nome_docx = f'relatorio_{id}.docx'
+        relatorio_nome_base = build_relatorio_filename(oc)
+        nome_docx = f'{relatorio_nome_base}.docx'
         output_path = os.path.join(output_dir, nome_docx)
         
         log_memory_usage("Antes de salvar DOCX")
@@ -1198,6 +1244,10 @@ def editar_dia(id):
         dia.condicoes = request.form.get('condicoes','')
         dia.temp_inicial = request.form.get('temp_inicial','')
         dia.temp_final = request.form.get('temp_final','')
+        if dia.tipo_busca == 'aquatica':
+            dia.temp_agua = request.form.get('temp_agua','')
+        else:
+            dia.temp_agua = ''
         dia.guarnicao = request.form.get('guarnicao','')
         dia.recursos = request.form.get('recursos','')
         dia.historico = request.form.get('historico','')

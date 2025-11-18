@@ -35,8 +35,9 @@
             </div>
             
             <div class="form-group">
-                <label for="condicoes">Condições</label>
-                <input name="condicoes" id="condicoes" type="text" class="form-control" value="{{ dia.condicoes }}">
+                <label for="condicoes">Condições Climáticas</label>
+                <input name="condicoes" id="condicoes" type="text" class="form-control"
+                       value="{{ dia.condicoes }}" placeholder="Atualize as condições climáticas do dia">
             </div>
             
             <div class="form-row">
@@ -49,6 +50,13 @@
                     <input name="temp_final" id="temp_final" type="text" class="form-control" value="{{ dia.temp_final }}">
                 </div>
             </div>
+            {% if dia.tipo_busca == 'aquatica' %}
+            <div class="form-group">
+                <label for="temp_agua">Temp. da Água <span class="required">*</span></label>
+                <input name="temp_agua" id="temp_agua" type="text" class="form-control"
+                       value="{{ dia.temp_agua }}" placeholder="Ex.: 22 ºC" required>
+            </div>
+            {% endif %}
             
             <div class="form-group">
                 <label for="guarnicao">Guarnição</label>

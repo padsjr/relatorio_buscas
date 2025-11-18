@@ -13,13 +13,13 @@
     <div class="card-body">
         <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="status_vitima">Status da Vítima</label>
-                <input name="status_vitima" id="status_vitima" type="text" class="form-control">
-            </div>
-            
-            <div class="form-group">
-                <label for="estado_biologico">Estado Biológico</label>
-                <input name="estado_biologico" id="estado_biologico" type="text" class="form-control">
+                <label for="status_vitima">Status da Vítima <span class="required">*</span></label>
+                <select name="status_vitima" id="status_vitima" class="form-control" required>
+                    <option value="">Selecione...</option>
+                    <option value="Localizada com vida">Localizada com vida</option>
+                    <option value="Localizada em óbito">Localizada em óbito</option>
+                    <option value="Não localizada">Não localizada</option>
+                </select>
             </div>
             
             <div class="form-group">
@@ -32,9 +32,28 @@
                 <input name="temp_agua" id="temp_agua" type="text" class="form-control">
             </div>
             
-            <div class="form-group">
-                <label for="estado_corpo">Estado do Corpo</label>
-                <input name="estado_corpo" id="estado_corpo" type="text" class="form-control">
+            <div id="obitoFields" class="border rounded p-3 mb-4" style="display: none;">
+                <div class="alert alert-info py-2">
+                    Informe os detalhes adicionais quando a vítima for localizada em óbito.
+                </div>
+                <div class="form-group">
+                    <label for="estado_corpo">Estado do Corpo <span class="required">*</span></label>
+                    <input name="estado_corpo" id="estado_corpo" type="text" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <div class="file-input">
+                        <label for="img_corpo">Imagem do Corpo</label>
+                        <input name="img_corpo" id="img_corpo" type="file" accept="image/*" disabled>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="file-input">
+                        <label for="img_local_corpo">Imagem do Local do Corpo</label>
+                        <input name="img_local_corpo" id="img_local_corpo" type="file" accept="image/*" disabled>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
@@ -57,20 +76,6 @@
                 <textarea name="relato" id="relato" rows="5" class="form-control"></textarea>
             </div>
             
-            <div class="form-group">
-                <div class="file-input">
-                    <label for="img_corpo">Imagem do Corpo</label>
-                    <input name="img_corpo" id="img_corpo" type="file" accept="image/*">
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <div class="file-input">
-                    <label for="img_local_corpo">Imagem do Local do Corpo</label>
-                    <input name="img_local_corpo" id="img_local_corpo" type="file" accept="image/*">
-                </div>
-            </div>
-            
             <div class="text-center">
                 <button type="submit" class="btn btn-success">Salvar</button>
                 <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancelar</a>
@@ -78,6 +83,32 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const statusSelect = document.getElementById('status_vitima');
+    const obitoFields = document.getElementById('obitoFields');
+    const estadoCorpoInput = document.getElementById('estado_corpo');
+    const imgCorpoInput = document.getElementById('img_corpo');
+    const imgLocalCorpoInput = document.getElementById('img_local_corpo');
+
+    const toggleObitoFields = () => {
+        const isObito = statusSelect.value === 'Localizada em óbito';
+        obitoFields.style.display = isObito ? 'block' : 'none';
+        estadoCorpoInput.required = isObito;
+        estadoCorpoInput.value = isObito ? estadoCorpoInput.value : '';
+        imgCorpoInput.disabled = !isObito;
+        imgLocalCorpoInput.disabled = !isObito;
+        if (!isObito) {
+            imgCorpoInput.value = '';
+            imgLocalCorpoInput.value = '';
+        }
+    };
+
+    statusSelect.addEventListener('change', toggleObitoFields);
+    toggleObitoFields();
+});
+</script>
 {% endblock %}
 
 

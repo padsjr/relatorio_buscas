@@ -47,6 +47,7 @@ O sistema agora permite selecionar entre **Busca Terrestre** e **Busca Aquática
 - `{{dia_condicoes}}` - Condições do dia
 - `{{dia_temp_inicial}}` - Temperatura inicial
 - `{{dia_temp_final}}` - Temperatura final
+- `{{dia_temp_agua}}` - Temperatura da água (buscas aquáticas)
 - `{{dia_guarnicao}}` - Guarnição
 - `{{dia_recursos}}` - Recursos utilizados
 - `{{dia_historico}}` - Histórico do dia
@@ -67,10 +68,12 @@ O sistema agora permite selecionar entre **Busca Terrestre** e **Busca Aquática
 - `substituir pelas condicoes fornecidas pelo usuario` - Condições do dia
 - `substituir pela temperatura inicial fornecida pelo usuario` - Temperatura inicial
 - `substituir pela temperatura final fornecida pelo usuario` - Temperatura final
+- `substituir pela temperatura da agua do dia fornecida pelo usuario` - Temperatura da água (apenas buscas aquáticas)
 - `substituir pela guarnicao fornecida pelo usuario` - Guarnição
 - `substituir pelos recursos fornecidos pelo usuario` - Recursos
 - `substituir pelo historico do dia fornecido pelo usuario` - Histórico do dia
 - `substituir pelo status da vitima fornecido pelo usuario` - Status da vítima
+- `substituir pelo tipo de busca do dia fornecido pelo usuario` - Tipo da busca (Aquática/Terrestre)
 
 ### Placeholders para Imagens (para inserção de imagens)
 - `inserir imagem tábua de maré do dia fornecida pelo usuario` - Tábua de maré
@@ -206,3 +209,5 @@ Endereço: Não informado
    - **Limite**: O sistema permite no máximo **10 imagens customizadas** por ocorrência. O botão de adicionar será desabilitado quando o limite for atingido.
 
 11. **Compatibilidade**: O campo `tipo_busca` foi adicionado ao modelo DiaBusca. Para ocorrências antigas, o padrão será 'aquatica'.
+
+12. **Nome do Relatório**: O arquivo DOCX final é salvo como `Relatório Buscas NomeDaVitima.docx`. Caracteres inválidos no nome da vítima são removidos automaticamente para garantir compatibilidade com o sistema operacional.

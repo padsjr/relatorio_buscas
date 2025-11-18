@@ -286,7 +286,17 @@
                     <div class="d-flex justify-content-between align-items-center">
                         {% set nomes_dias = {1: "primeiro", 2: "segundo", 3: "terceiro", 4: "quarto", 5: "quinto", 6: "sexto", 7: "sétimo", 8: "oitavo", 9: "nono", 10: "décimo"} %}
                         {% set nome_dia = nomes_dias.get(loop.index, loop.index ~ "º") %}
-                        <h5 class="mb-0">{{ nome_dia|title }} dia de busca - {{ dia.data|data_br }}</h5>
+                        <div>
+                            <h5 class="mb-0">{{ nome_dia|title }} dia de busca - {{ dia.data|data_br }}</h5>
+                            <div class="d-flex align-items-center gap-2">
+                                {% set descricao_tipo = 'Busca Aquática' if dia.tipo_busca == 'aquatica' else 'Busca Terrestre' %}
+                                {% set badge_class = 'bg-primary' if dia.tipo_busca == 'aquatica' else 'bg-success' %}
+                                <span class="badge {{ badge_class }}">{{ descricao_tipo }}</span>
+                                <small class="text-muted">
+                                    {{ 'Operação em ambiente aquático' if dia.tipo_busca == 'aquatica' else 'Operação em ambiente terrestre' }}
+                                </small>
+                            </div>
+                        </div>
                         {% if not ocorrencia.finalizada %}
                         <div>
                             <a href="{{ url_for('editar_dia', id=dia.id) }}" class="btn btn-sm btn-warning">Editar</a>
@@ -297,6 +307,12 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <div class="form-group">
+                        <label>Tipo de Busca</label>
+                        <div class="form-control">
+                            {{ 'Busca Aquática' if dia.tipo_busca == 'aquatica' else 'Busca Terrestre' }}
+                        </div>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Hora Início</label>
@@ -312,7 +328,7 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Condições</label>
+                        <label>Condições Climáticas</label>
                         <div class="form-control">{{ dia.condicoes or '-' }}</div>
                     </div>
                     <div class="form-row">
@@ -325,6 +341,12 @@
                             <div class="form-control">{{ dia.temp_final or '-' }}</div>
                         </div>
                     </div>
+                    {% if dia.tipo_busca == 'aquatica' %}
+                    <div class="form-group">
+                        <label>Temp. da Água</label>
+                        <div class="form-control">{{ dia.temp_agua or '-' }}</div>
+                    </div>
+                    {% endif %}
                     <div class="form-group">
                         <label>Guarnição</label>
                         <div class="form-control">{{ dia.guarnicao or '-' }}</div>
@@ -345,6 +367,8 @@
                                 <span class="badge bg-success">{{ dia.status_vitima }}</span>
                             {% elif dia.status_vitima == 'Não localizada' %}
                                 <span class="badge bg-warning">{{ dia.status_vitima }}</span>
+                            {% elif dia.status_vitima == 'Localizada em óbito' %}
+                                <span class="badge bg-danger">{{ dia.status_vitima }}</span>
                             {% else %}
                                 -
                             {% endif %}
@@ -401,10 +425,6 @@
                     <label>Status da Vítima</label>
                     <div class="form-control">{{ relatorio_final.status_vitima or '-' }}</div>
                 </div>
-                <div class="form-group">
-                    <label>Estado Biológico</label>
-                    <div class="form-control">{{ relatorio_final.estado_biologico or '-' }}</div>
-                </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
@@ -416,10 +436,12 @@
                     <div class="form-control">{{ relatorio_final.temp_agua or '-' }}</div>
                 </div>
             </div>
+            {% if relatorio_final.estado_corpo %}
             <div class="form-group">
                 <label>Estado do Corpo</label>
-                <div class="form-control">{{ relatorio_final.estado_corpo or '-' }}</div>
+                <div class="form-control">{{ relatorio_final.estado_corpo }}</div>
             </div>
+            {% endif %}
             <div class="form-row">
                 <div class="form-group">
                     <label>Tempo Total de Buscas</label>
