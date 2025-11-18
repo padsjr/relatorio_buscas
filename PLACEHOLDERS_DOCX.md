@@ -211,3 +211,4 @@ Endereço: Não informado
 11. **Compatibilidade**: O campo `tipo_busca` foi adicionado ao modelo DiaBusca. Para ocorrências antigas, o padrão será 'aquatica'.
 
 12. **Nome do Relatório**: O arquivo DOCX final é salvo como `Relatório Buscas NomeDaVitima.docx`. Caracteres inválidos no nome da vítima são removidos automaticamente para garantir compatibilidade com o sistema operacional.
+teste
